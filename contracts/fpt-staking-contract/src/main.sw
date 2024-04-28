@@ -144,6 +144,11 @@ impl FPTStaking for Contract {
         storage.valid_assets.push(asset_address);
         storage.f_asset.insert(asset_address, 0);
     }
+    
+    #[storage(read)]
+    fn get_staking_balance(id: Identity) -> u64 {
+        storage.stakes.get(id).try_read().unwrap_or(0);
+    }
 
     #[storage(read)]
     fn get_pending_asset_gain(id: Identity, asset_address: AssetId) -> u64 {
