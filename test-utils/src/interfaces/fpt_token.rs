@@ -1,4 +1,4 @@
-use fuels::{prelude::abigen, programs::responses::CallResponse};
+use fuels::{prelude::abigen, programs::responses::CallResponse, types::Identity};
 
 abigen!(Contract(
     name = "FPTToken",
@@ -15,6 +15,7 @@ pub mod fpt_token_abi {
         instance: &FPTToken<T>,
         vesting_contract: &VestingContract<T>,
         community_issuance_contract: &CommunityIssuance<T>,
+        debugging: bool,
     ) -> CallResponse<()> {
         let tx_params = TxPolicies::default().with_tip(1);
 
@@ -23,6 +24,7 @@ pub mod fpt_token_abi {
             .initialize(
                 vesting_contract.contract_id(),
                 community_issuance_contract.contract_id(),
+                debugging,
             )
             .with_contracts(&[vesting_contract, community_issuance_contract])
             .with_tx_policies(tx_params)
@@ -53,6 +55,20 @@ pub mod fpt_token_abi {
         instance
             .methods()
             .get_vesting_contract()
+            .call()
+            .await
+            .unwrap()
+    }
+
+    pub async fn mint_to_id<T: Account>(
+        instance: &FPTToken<T>,
+        amount: u64,
+        admin: Identity,
+    ) -> CallResponse<()> {
+        instance
+            .methods()
+            .mint_to_id(amount, admin)
+            .with_variable_output_policy(VariableOutputPolicy::Exactly(1))
             .call()
             .await
             .unwrap()

@@ -36,6 +36,7 @@ storage {
     community_issuance_contract: ContractId = ContractId::zero(),
     is_initialized: bool = false,
     default_asset: AssetId = AssetId::zero(),
+    debug: bool = false,
 }
 // Using https://docs.fuel.network/docs/sway-standards/src-20-native-asset/ as reference
 // import fluid math decimals here
@@ -48,6 +49,7 @@ impl FPTToken for Contract {
     fn initialize(
         vesting_contract: ContractId,
         community_issuance_contract: ContractId,
+        debugging: bool,
     ) {
         require(
             storage
@@ -73,6 +75,7 @@ impl FPTToken for Contract {
             .default_asset
             .write(get_default_asset_id(ContractId::this()));
         storage.is_initialized.write(true);
+        storage.debug.write(debugging);
     }
     //////////////////////////////////////
     // Read-Only methods
@@ -118,5 +121,21 @@ impl FPTToken for Contract {
             return Some(9u8);
         }
         return None;
+    }
+
+    /// @notice Mints FPT tokens to a specified address
+    /// @dev This function can only be called when debugging is enabled. It is included to simplify testing for FPT staking.
+    /// @param amount The amount of FPT tokens to mint
+    /// @param address The address to mint the tokens to
+    /// @custom:throws "FPTToken: Debugging must be enabled to mint" if debugging is not enabled
+    #[storage(read)]
+    fn mint_to_id(amount: u64, address: Identity) {
+        require(
+            storage
+                .debug
+                .read(),
+            "FPTToken: Debugging must be enabled to mint",
+        );
+        mint_to(address, ZERO_B256, amount);
     }
 }

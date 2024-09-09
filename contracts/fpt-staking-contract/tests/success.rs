@@ -7,6 +7,7 @@ use test_utils::{
         oracle::oracle_abi,
         protocol_manager::{protocol_manager_abi, ProtocolManager},
         pyth_oracle::{pyth_oracle_abi, pyth_price_feed, PYTH_TIMESTAMP},
+        fpt_token::fpt_token_abi,
         token::token_abi,
     },
     setup::common::setup_protocol,
@@ -16,8 +17,8 @@ use test_utils::{
 async fn proper_intialize() {
     let (contracts, admin, _wallets) = setup_protocol(10, 4, false).await;
     println!("admin address {:?}", admin.address());
-    token_abi::mint_to_id(
-        &contracts.asset_contracts[0].asset,
+    fpt_token_abi::mint_to_id(
+        &contracts.fpt_token,
         5_000 * PRECISION,
         Identity::Address(admin.address().into()),
     )
@@ -48,19 +49,19 @@ async fn proper_staking_deposit() {
     let provider = admin.provider().unwrap();
 
     let fpt_asset_id = contracts
-        .fpt
+        .fpt_token
         .contract_id()
         .asset_id(&AssetId::zeroed().into())
         .into();
 
-    token_abi::mint_to_id(
-        &contracts.fpt,
+    fpt_token_abi::mint_to_id(
+        &contracts.fpt_token,
         5 * PRECISION,
         Identity::Address(admin.address().into()),
     )
     .await;
 
-    fpt_staking_abi::stake(&contracts.fpt_staking, &contracts.fpt, 1 * PRECISION).await;
+    fpt_staking_abi::stake(&contracts.fpt_staking, &contracts.fpt_token, 1 * PRECISION).await;
 
     let fpt_balance = provider
         .get_asset_balance(admin.address().into(), fpt_asset_id)
@@ -77,7 +78,7 @@ async fn proper_staking_multiple_positions() {
     let provider = admin.provider().unwrap();
 
     let fpt_asset_id = contracts
-        .fpt
+        .fpt_token
         .contract_id()
         .asset_id(&AssetId::zeroed().into())
         .into();
@@ -91,15 +92,15 @@ async fn proper_staking_multiple_positions() {
     let healthy_wallet2 = wallets.pop().unwrap();
     let healthy_wallet3 = wallets.pop().unwrap();
 
-    token_abi::mint_to_id(
-        &contracts.fpt,
+    fpt_token_abi::mint_to_id(
+        &contracts.fpt_token,
         5 * PRECISION,
         Identity::Address(healthy_wallet1.address().into()),
     )
     .await;
 
-    token_abi::mint_to_id(
-        &contracts.fpt,
+    fpt_token_abi::mint_to_id(
+        &contracts.fpt_token,
         5 * PRECISION,
         Identity::Address(healthy_wallet2.address().into()),
     )
@@ -115,9 +116,9 @@ async fn proper_staking_multiple_positions() {
         healthy_wallet2.clone(),
     );
 
-    fpt_staking_abi::stake(&fpt_staking_healthy_wallet1, &contracts.fpt, 1 * PRECISION).await;
+    fpt_staking_abi::stake(&fpt_staking_healthy_wallet1, &contracts.fpt_token, 1 * PRECISION).await;
 
-    fpt_staking_abi::stake(&fpt_staking_healthy_wallet2, &contracts.fpt, 1 * PRECISION).await;
+    fpt_staking_abi::stake(&fpt_staking_healthy_wallet2, &contracts.fpt_token, 1 * PRECISION).await;
 
     let fpt_balance_user1 = provider
         .get_asset_balance(healthy_wallet1.address().into(), fpt_asset_id)
@@ -238,7 +239,7 @@ async fn proper_staking_multiple_positions() {
         &fpt_staking_healthy_wallet1,
         &contracts.usdf,
         &contracts.asset_contracts[0].asset,
-        &contracts.fpt,
+        &contracts.fpt_token,
         500_000_000,
     )
     .await;
@@ -247,7 +248,7 @@ async fn proper_staking_multiple_positions() {
         &fpt_staking_healthy_wallet2,
         &contracts.usdf,
         &contracts.asset_contracts[0].asset,
-        &contracts.fpt,
+        &contracts.fpt_token,
         500_000_000,
     )
     .await;

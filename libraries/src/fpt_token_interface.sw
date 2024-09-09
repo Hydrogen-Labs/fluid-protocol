@@ -8,6 +8,7 @@ abi FPTToken {
     fn initialize(
         vesting_contract: ContractId,
         community_issuance_contract: ContractId,
+        debugging: bool,
     );
 
     #[storage(read)]
@@ -26,4 +27,7 @@ abi FPTToken {
 
     #[storage(read)]
     fn decimals(asset: AssetId) -> Option<u8>;
+
+    #[storage(read)]
+    fn mint_to_id(amount: u64, address: Identity);
 }

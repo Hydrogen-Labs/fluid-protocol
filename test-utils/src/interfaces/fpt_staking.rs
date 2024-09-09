@@ -10,6 +10,7 @@ pub mod fpt_staking_abi {
 
     use super::*;
     use crate::interfaces::token::Token;
+    use crate::interfaces::fpt_token::FPTToken;
     use crate::interfaces::usdf_token::USDFToken;
     use fuels::prelude::{Account, AssetId, CallParameters, Error};
     use fuels::types::transaction_builders::VariableOutputPolicy;
@@ -54,7 +55,7 @@ pub mod fpt_staking_abi {
 
     pub async fn stake<T: Account>(
         fpt_staking: &FPTStaking<T>,
-        fpt_token: &Token<T>,
+        fpt_token: &FPTToken<T>,
         fpt_deposit_amount: u64,
     ) -> CallResponse<()> {
         let tx_params = TxPolicies::default()
@@ -85,7 +86,7 @@ pub mod fpt_staking_abi {
         fpt_staking: &FPTStaking<T>,
         usdf_token: &USDFToken<T>,
         fuel_token: &Token<T>,
-        fpt_token: &Token<T>,
+        fpt_token: &FPTToken<T>,
         amount: u64,
     ) -> Result<CallResponse<()>, Error> {
         let tx_params = TxPolicies::default()

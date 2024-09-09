@@ -64,7 +64,6 @@ pub mod common {
         pub default_pool: DefaultPool<T>,
         pub active_pool: ActivePool<T>,
         pub fpt_token: FPTToken<T>,
-        pub fpt: Token<T>,
         pub community_issuance: CommunityIssuance<T>,
         pub vesting_contract: VestingContract<T>,
     }
@@ -141,9 +140,6 @@ pub mod common {
         let fpt_token = deploy_fpt_token(&wallet).await;
         // pb.inc();
 
-        let fpt = deploy_token(&wallet).await;
-        // pb.inc();
-
         let protocol_manager = deploy_protocol_manager(&wallet).await;
         // pb.inc();
 
@@ -193,19 +189,7 @@ pub mod common {
         .unwrap();
         // pb.inc();
 
-        fpt_token_abi::initialize(&fpt_token, &vesting_contract, &community_issuance).await;
-        // pb.inc();
-
-        // mock token for testing staking
-        token_abi::initialize(
-            &fpt,
-            1_000_000_000,
-            &Identity::Address(wallet.address().into()),
-            "FPT Token".to_string(),
-            "FPT".to_string(),
-        )
-        .await
-        .unwrap();
+        fpt_token_abi::initialize(&fpt_token, &vesting_contract, &community_issuance, true).await;
         // pb.inc();
 
         usdf_token_abi::initialize(
@@ -241,11 +225,12 @@ pub mod common {
         .unwrap();
         // pb.inc();
 
+        
         fpt_staking_abi::initialize(
             &fpt_staking,
             protocol_manager.contract_id().into(),
             borrow_operations.contract_id().into(),
-            fpt.contract_id().asset_id(&AssetId::zeroed().into()).into(), // TODO switch this from `fpt` to `fpt_token`, mock token for testing
+            fpt_token.contract_id().asset_id(&AssetId::zeroed().into()).into(), // TODO switch this from `fpt` to `fpt_token`, mock token for testing
             usdf.contract_id()
                 .asset_id(&AssetId::zeroed().into())
                 .into(),
@@ -357,7 +342,6 @@ pub mod common {
             protocol_manager,
             fpt_staking,
             fpt_token,
-            fpt,
             coll_surplus_pool,
             default_pool,
             active_pool,

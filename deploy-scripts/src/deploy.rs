@@ -259,7 +259,7 @@ pub mod deployment {
         .await;
         pb.inc();
 
-        fpt_token_abi::initialize(&fpt_token, &vesting_contract, &community_issuance).await;
+        fpt_token_abi::initialize(&fpt_token, &vesting_contract, &community_issuance, false).await;
         pb.inc();
 
         let _ = usdf_token_abi::initialize(
@@ -430,7 +430,6 @@ pub mod deployment {
             asset_contracts,
             fpt_staking,
             fpt_token,
-            fpt: _fpt,
             community_issuance,
             coll_surplus_pool,
             default_pool,
