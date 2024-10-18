@@ -19,7 +19,7 @@ pub mod stability_pool_abi {
     use super::*;
     use fuels::{
         prelude::{Account, CallParameters, Error, TxPolicies, WalletUnlocked},
-        programs::responses::CallResponse,
+        programs::{calls::ContractDependency, responses::CallResponse},
         types::{transaction_builders::VariableOutputPolicy, AssetId, ContractId, Identity},
     };
 
@@ -154,27 +154,32 @@ pub mod stability_pool_abi {
         sorted_troves: &SortedTroves<T>,
         oracle: &Oracle<T>,
         pyth_oracle: &PythCore<T>,
-        redstone_oracle: &RedstoneCore<T>,
+        redstone_oracle: &Option<RedstoneCore<T>>,
         trove_manager: &TroveManagerContract<T>,
         amount: u64,
     ) -> Result<CallResponse<()>, Error> {
         let tx_params = TxPolicies::default().with_tip(1);
+
+        let mut contracts: Vec<&dyn ContractDependency> = vec![
+            usdf_token,
+            mock_token,
+            community_issuance,
+            sorted_troves,
+            oracle,
+            pyth_oracle,
+            trove_manager,
+        ];
+
+        if let Some(redstone) = redstone_oracle {
+            contracts.push(redstone);
+        }
 
         stability_pool
             .methods()
             .withdraw_from_stability_pool(amount)
             .with_tx_policies(tx_params)
             .with_variable_output_policy(VariableOutputPolicy::Exactly(2))
-            .with_contracts(&[
-                usdf_token,
-                mock_token,
-                community_issuance,
-                sorted_troves,
-                oracle,
-                pyth_oracle,
-                redstone_oracle,
-                trove_manager,
-            ])
+            .with_contracts(&contracts)
             .call()
             .await
     }

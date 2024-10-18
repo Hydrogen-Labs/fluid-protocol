@@ -35,7 +35,7 @@ pub struct AssetContracts<T: Account> {
     pub asset: Token<T>,
     pub oracle: Oracle<T>,
     pub mock_pyth_oracle: PythCore<T>,
-    pub mock_redstone_oracle: RedstoneCore<T>,
+    pub mock_redstone_oracle: Option<RedstoneCore<T>>,
     pub trove_manager: TroveManagerContract<T>,
     pub asset_id: AssetId,
     pub pyth_price_id: Bits256,
@@ -50,7 +50,7 @@ pub struct ExistingAssetContracts {
     pub pyth_oracle: ContractId,
     pub pyth_price_id: Bits256,
     pub pyth_precision: u8,
-    pub redstone_oracle: ContractId,
+    pub redstone_oracle: Option<ContractId>,
     pub redstone_price_id: U256,
     pub redstone_precision: u8,
 }

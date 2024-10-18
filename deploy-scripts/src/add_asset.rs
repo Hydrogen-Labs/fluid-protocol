@@ -28,7 +28,7 @@ pub async fn add_asset() {
             pyth_oracle: ContractId::zeroed(),
             pyth_precision: 9,
             pyth_price_id: Bits256::zeroed(),
-            redstone_oracle: ContractId::zeroed(),
+            redstone_oracle: None,
             redstone_price_id: U256::zero(),
             redstone_precision: 9,
         });
@@ -72,21 +72,26 @@ fn write_asset_contracts_to_file(asset_contracts: Vec<AssetContracts<WalletUnloc
     .expect("Failed to parse contracts.json");
 
     // Update asset_contracts field
-    contracts["asset_contracts"] =
-        json!(asset_contracts.iter().map(|asset_contract| {
-        json!({
-            "oracle": asset_contract.oracle.contract_id().to_string(),
-            "trove_manager": asset_contract.trove_manager.contract_id().to_string(),
-            "asset_contract": asset_contract.asset.contract_id().to_string(),
-            "asset_id": asset_contract.asset_id.to_string(),
-            "pyth_price_id": to_hex_str(&asset_contract.pyth_price_id),
-            "pyth_precision": asset_contract.pyth_precision,
-            "pyth_contract": asset_contract.mock_pyth_oracle.contract_id().to_string(),
-            "redstone_contract": asset_contract.mock_redstone_oracle.contract_id().to_string(),
-            "redstone_price_id": asset_contract.redstone_price_id.to_string(),
-            "redstone_precision": asset_contract.redstone_precision,
+    contracts["asset_contracts"] = json!(asset_contracts
+        .iter()
+        .map(|asset_contract| {
+            json!({
+                "oracle": asset_contract.oracle.contract_id().to_string(),
+                "trove_manager": asset_contract.trove_manager.contract_id().to_string(),
+                "asset_contract": asset_contract.asset.contract_id().to_string(),
+                "asset_id": asset_contract.asset_id.to_string(),
+                "pyth_price_id": to_hex_str(&asset_contract.pyth_price_id),
+                "pyth_contract": asset_contract.mock_pyth_oracle.contract_id().to_string(),
+                "redstone_contract": match &asset_contract.mock_redstone_oracle {
+                    Some(redstone) => redstone.contract_id().to_string(),
+                    None => "".to_string(),
+                },
+                "redstone_price_id": asset_contract.redstone_price_id.to_string(),
+                "redstone_precision": asset_contract.redstone_precision,
+                "fuel_vm_decimals": asset_contract.fuel_vm_decimals,
+            })
         })
-    }).collect::<Vec<serde_json::Value>>());
+        .collect::<Vec<serde_json::Value>>());
 
     // Write updated contracts back to file
     let mut file =
@@ -112,14 +117,6 @@ async fn query_oracles(asset_contracts: &AssetContracts<WalletUnlocked>) {
     .value
     .price;
 
-    let current_redstone_price = redstone_oracle_abi::read_prices(
-        &asset_contracts.mock_redstone_oracle,
-        vec![asset_contracts.redstone_price_id],
-    )
-    .await
-    .value[0]
-        .as_u64();
-
     println!(
         "Current oracle proxy price: {:.9}",
         current_price as f64 / 1_000_000_000.0
@@ -128,6 +125,17 @@ async fn query_oracles(asset_contracts: &AssetContracts<WalletUnlocked>) {
         "Current pyth price: {:.9}",
         current_pyth_price as f64 / 1_000_000_000.0
     );
+
+    let current_redstone_price = match &asset_contracts.mock_redstone_oracle {
+        Some(redstone) => {
+            redstone_oracle_abi::read_prices(redstone, vec![asset_contracts.redstone_price_id])
+                .await
+                .value[0]
+                .as_u64()
+        }
+        None => 0,
+    };
+
     println!(
         "Current redstone price: {:.9}",
         current_redstone_price as f64 / 1_000_000_000.0

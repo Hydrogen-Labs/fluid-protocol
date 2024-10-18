@@ -20,6 +20,7 @@ pub mod trove_manager_abi {
 
     use fuels::{
         prelude::{Account, Error, TxPolicies},
+        programs::calls::ContractDependency,
         types::{transaction_builders::VariableOutputPolicy, AssetId, ContractId, Identity},
     };
 
@@ -43,7 +44,7 @@ pub mod trove_manager_abi {
         stability_pool: &StabilityPool<T>,
         oracle: &Oracle<T>,
         pyth: &PythCore<T>,
-        redstone: &RedstoneCore<T>,
+        redstone: &Option<RedstoneCore<T>>,
         sorted_troves: &SortedTroves<T>,
         active_pool: &ActivePool<T>,
         default_pool: &DefaultPool<T>,
@@ -53,24 +54,31 @@ pub mod trove_manager_abi {
         upper_hint: Identity,
         lower_hint: Identity,
     ) -> Result<CallResponse<()>, Error> {
-        let tx_params = TxPolicies::default().with_tip(1);
+        let tx_params = TxPolicies::default()
+            .with_tip(1)
+            .with_script_gas_limit(2000000);
+
+        let mut contracts: Vec<&dyn ContractDependency> = vec![
+            stability_pool,
+            oracle,
+            pyth,
+            sorted_troves,
+            active_pool,
+            default_pool,
+            coll_surplus_pool,
+            usdf,
+            community_issuance,
+        ];
+
+        if let Some(redstone) = redstone {
+            contracts.push(redstone);
+        }
 
         trove_manager
             .methods()
             .batch_liquidate_troves(ids, upper_hint, lower_hint)
             .with_tx_policies(tx_params)
-            .with_contracts(&[
-                stability_pool,
-                oracle,
-                pyth,
-                redstone,
-                sorted_troves,
-                active_pool,
-                default_pool,
-                coll_surplus_pool,
-                usdf,
-                community_issuance,
-            ])
+            .with_contracts(&contracts)
             .with_variable_output_policy(VariableOutputPolicy::Exactly(3))
             .call()
             .await
@@ -82,7 +90,7 @@ pub mod trove_manager_abi {
         stability_pool: &StabilityPool<T>,
         oracle: &Oracle<T>,
         pyth: &PythCore<T>,
-        redstone: &RedstoneCore<T>,
+        redstone: &Option<RedstoneCore<T>>,
         sorted_troves: &SortedTroves<T>,
         active_pool: &ActivePool<T>,
         default_pool: &DefaultPool<T>,
@@ -94,22 +102,27 @@ pub mod trove_manager_abi {
     ) -> Result<CallResponse<()>, Error> {
         let tx_params = TxPolicies::default().with_tip(1);
 
+        let mut contracts: Vec<&dyn ContractDependency> = vec![
+            stability_pool,
+            oracle,
+            pyth,
+            sorted_troves,
+            active_pool,
+            default_pool,
+            coll_surplus_pool,
+            usdf,
+            community_issuance,
+        ];
+
+        if let Some(redstone) = redstone {
+            contracts.push(redstone);
+        }
+
         trove_manager
             .methods()
             .liquidate(id, upper_hint, lower_hint)
             .with_tx_policies(tx_params)
-            .with_contracts(&[
-                stability_pool,
-                oracle,
-                pyth,
-                redstone,
-                sorted_troves,
-                active_pool,
-                default_pool,
-                coll_surplus_pool,
-                usdf,
-                community_issuance,
-            ])
+            .with_contracts(&contracts)
             .with_variable_output_policy(VariableOutputPolicy::Exactly(3))
             .call()
             .await

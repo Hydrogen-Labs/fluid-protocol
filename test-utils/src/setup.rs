@@ -517,8 +517,8 @@ pub mod common {
         pyth: ContractId,
         pyth_precision: u8,
         pyth_price_id: Bits256,
-        redstone: ContractId,
-        redstone_precison: u8,
+        redstone: Option<ContractId>,
+        redstone_precison: u32,
         redstone_price_id: U256,
         debug: bool,
     ) -> Oracle<WalletUnlocked> {
@@ -672,10 +672,10 @@ pub mod common {
                 return AssetContracts {
                     oracle,
                     mock_pyth_oracle: PythCore::new(contracts.pyth_oracle, wallet.clone()),
-                    mock_redstone_oracle: RedstoneCore::new(
-                        contracts.redstone_oracle,
-                        wallet.clone(),
-                    ),
+                    mock_redstone_oracle: match contracts.redstone_oracle {
+                        Some(redstone) => Some(RedstoneCore::new(redstone, wallet.clone())),
+                        None => None,
+                    },
                     trove_manager,
                     asset: Token::new(contracts.asset, wallet.clone()),
                     asset_id: contracts.asset_id,
@@ -710,7 +710,7 @@ pub mod common {
                     pyth.contract_id().into(),
                     9,
                     pyth_price_id,
-                    redstone.contract_id().into(),
+                    Some(redstone.contract_id().into()),
                     9,
                     redstone_price_id,
                     true,
@@ -756,7 +756,7 @@ pub mod common {
                 return AssetContracts {
                     oracle,
                     mock_pyth_oracle: pyth,
-                    mock_redstone_oracle: redstone,
+                    mock_redstone_oracle: Some(redstone),
                     trove_manager,
                     asset,
                     asset_id,
@@ -782,7 +782,7 @@ pub mod common {
             pyth.contract_id().into(),
             9,
             DEFAULT_PYTH_PRICE_ID,
-            redstone.contract_id().into(),
+            Some(redstone.contract_id().into()),
             9,
             DEFAULT_REDSTONE_PRICE_ID,
             true,
@@ -849,7 +849,7 @@ pub mod common {
         AssetContracts {
             oracle,
             mock_pyth_oracle: pyth,
-            mock_redstone_oracle: redstone,
+            mock_redstone_oracle: Some(redstone),
             trove_manager,
             asset,
             asset_id,

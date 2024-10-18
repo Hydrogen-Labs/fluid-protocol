@@ -130,7 +130,10 @@ pub mod protocol_manager_abi {
             with_contracts.push(&contracts.trove_manager);
             with_contracts.push(&contracts.oracle);
             with_contracts.push(&contracts.mock_pyth_oracle);
-            with_contracts.push(&contracts.mock_redstone_oracle);
+            match &contracts.mock_redstone_oracle {
+                Some(redstone) => with_contracts.push(redstone),
+                None => (),
+            }
         }
 
         with_contracts.push(fpt_staking);

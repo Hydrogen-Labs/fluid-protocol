@@ -13,18 +13,27 @@ pub const ORACLE_TIMEOUT: u64 = 14400;
 pub mod oracle_abi {
 
     use super::*;
-    use fuels::prelude::{Account, TxPolicies};
+    use fuels::{
+        prelude::{Account, TxPolicies},
+        programs::calls::ContractDependency,
+    };
 
     pub async fn get_price<T: Account>(
         oracle: &Oracle<T>,
         pyth: &PythCore<T>,
-        redstone: &RedstoneCore<T>,
+        redstone: &Option<RedstoneCore<T>>,
     ) -> CallResponse<u64> {
         let tx_params = TxPolicies::default().with_tip(1);
+        let mut contracts: Vec<&dyn ContractDependency> = vec![pyth];
+
+        if let Some(redstone) = redstone {
+            contracts.push(redstone);
+        }
+
         oracle
             .methods()
             .get_price()
-            .with_contracts(&[pyth, redstone])
+            .with_contracts(&contracts)
             .with_tx_policies(tx_params)
             .call()
             .await

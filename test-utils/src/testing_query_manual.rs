@@ -44,7 +44,7 @@ pub async fn testing_query() {
 
     let oracle = Oracle::new(id.clone(), wallet.clone());
     let pyth = PythCore::new(id.clone(), wallet.clone());
-    let redstone = RedstoneCore::new(id, wallet.clone());
+    let redstone = Some(RedstoneCore::new(id, wallet.clone()));
 
     let res = oracle_abi::get_price(&oracle, &pyth, &redstone).await;
 

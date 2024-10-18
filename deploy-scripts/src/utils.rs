@@ -167,7 +167,10 @@ pub mod utils {
                         wallet.clone(),
                     ),
                     mock_pyth_oracle: PythCore::new(pyth_contract_id, wallet.clone()),
-                    mock_redstone_oracle: RedstoneCore::new(redstone_contract_id, wallet.clone()),
+                    mock_redstone_oracle: Some(RedstoneCore::new(
+                        redstone_contract_id,
+                        wallet.clone(),
+                    )),
                     pyth_price_id: Bits256::from_hex_str(
                         asset_contract["pyth_price_id"].as_str().unwrap(),
                     )

@@ -61,7 +61,7 @@ configurable {
     /// Precision of value returned by Pyth
     PYTH_PRECISION: u8 = 9,
     /// Contract Address
-    REDSTONE: ContractId = ContractId::zero(),
+    REDSTONE: Option<ContractId> = None,
     /// Price feed to query
     REDSTONE_PRICE_ID: u256 = u256::min(),
     /// Precision of value returned by Redstone
@@ -85,6 +85,14 @@ storage {
 impl Oracle for Contract {
     #[storage(read, write)]
     fn get_price() -> u64 {
+        let mut pyth_price = abi(PythCore, PYTH.bits()).price_unsafe(PYTH_PRICE_ID);
+        pyth_price = pyth_price_with_fuel_vm_precision_adjustment(pyth_price, FUEL_DECIMAL_REPRESENTATION);
+
+        // If Redstone is not configured, return the Pyth price regardless of staleness or confidence 
+        // price_unsafe retunrs the last price regardless of staleness with no reverts
+        if REDSTONE.is_none() {
+            return pyth_price.price;
+        }
         // Determine the current timestamp based on debug mode
         let current_time = match DEBUG {
             true => storage.debug_timestamp.read(),
@@ -94,16 +102,15 @@ impl Oracle for Contract {
         let last_price = storage.price.read();
 
         // Step 1: Query the Pyth oracle (primary source)
-        let pyth_price = abi(PythCore, PYTH.bits()).price(PYTH_PRICE_ID);
 
-        // Check if Pyth data is stale
-        if current_time - pyth_price.publish_time > TIMEOUT {
-            // Step 2: Pyth is stale, query Redstone oracle (fallback source)
+        // Check if Pyth data is stale or outside confidence
+        if is_pyth_price_stale_or_outside_confidence(pyth_price, current_time) {
+            // Step 2: Pyth is stale or outside confidence, query Redstone oracle (fallback source)
             let mut feed = Vec::with_capacity(1);
             feed.push(REDSTONE_PRICE_ID);
 
             // Fuel Bug workaround: trait coherence
-            let id = REDSTONE.bits();
+            let id = REDSTONE.unwrap().bits();
             let redstone = abi(RedstoneCore, id);
             let redstone_prices = redstone.read_prices(feed);
             let redstone_timestamp = redstone.read_timestamp();
