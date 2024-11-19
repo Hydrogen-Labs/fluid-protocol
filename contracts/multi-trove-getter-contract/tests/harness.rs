@@ -57,7 +57,8 @@ async fn test_get_multiple_sorted_troves() {
         start_index,
         count,
     )
-    .await;
+    .await
+    .unwrap();
 
     let troves = res.value;
     assert_eq!(troves.len(), count as usize);
