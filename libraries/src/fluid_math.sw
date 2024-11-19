@@ -21,7 +21,7 @@ pub const MCR: u64 = 1_350_000_000;
 pub const USDF_GAS_COMPENSATION: u64 = 10_000_000;
 
 // min debt is 5 USDF for staging 
-pub const MIN_NET_DEBT: u64 = 5_000_000_000; /*  */ pub const PERCENT_DIVERSOR = 200;
+pub const MIN_NET_DEBT: u64 = 2_000_000_000; /*  */ pub const PERCENT_DIVERSOR = 200;
 
 pub const POST_COLLATERAL_RATIO: u64 = 1_500_000_000;
 
