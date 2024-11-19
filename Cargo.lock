@@ -5561,6 +5561,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "services"
+version = "0.0.0"
+dependencies = [
+ "csv",
+ "deploy-scripts",
+ "dotenv",
+ "fuels",
+ "futures",
+ "hex",
+ "pbr",
+ "serde",
+ "serde_json",
+ "tai64",
+ "test-utils",
+ "tokio",
+]
+
+[[package]]
 name = "sha1"
 version = "0.10.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"

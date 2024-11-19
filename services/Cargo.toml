@@ -1,0 +1,24 @@
+[package]
+name = "services"
+version = "0.0.0"
+authors = ["Hydrogen-labs"]
+edition = "2021"
+license = "Apache-2.0"
+
+[dependencies]
+deploy-scripts = { workspace = true }
+dotenv = { workspace = true }
+fuels = { workspace = true }
+futures = { workspace = true }
+hex = { workspace = true }
+pbr = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+test-utils = { workspace = true }
+tokio = { workspace = true }
+csv = { workspace = true }
+tai64 = { workspace = true }
+
+[lib]
+doctest = false
+test = false

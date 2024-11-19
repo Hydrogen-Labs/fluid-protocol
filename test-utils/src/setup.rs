@@ -934,7 +934,7 @@ pub mod common {
             1_000_000_000,
             &Identity::Address(wallet.address().into()),
             name,
-            symbol,
+            symbol.clone(),
         )
         .await
         .unwrap();
@@ -996,6 +996,7 @@ pub mod common {
             redstone_price_id: DEFAULT_REDSTONE_PRICE_ID,
             redstone_precision: 9,
             fuel_vm_decimals: 9,
+            symbol,
         }
     }
 

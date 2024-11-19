@@ -25,7 +25,7 @@ pub mod oracle_abi {
         oracle: &ContractInstance<Oracle<T>>,
         pyth: &PythCore<T>,
         redstone: &Option<RedstoneCore<T>>,
-    ) -> CallResponse<u64> {
+    ) -> Result<CallResponse<u64>, Error> {
         let tx_params = TxPolicies::default().with_tip(1);
 
         let mut with_contracts: Vec<&dyn ContractDependency> = Vec::new();
@@ -51,7 +51,6 @@ pub mod oracle_abi {
             .with_tx_policies(tx_params)
             .call()
             .await
-            .unwrap()
     }
 
     pub async fn set_debug_timestamp<T: Account>(

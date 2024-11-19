@@ -11,6 +11,7 @@ pub mod multi_trove_getter_abi {
     use crate::data_structures::ContractInstance;
     use crate::interfaces::{sorted_troves::SortedTroves, trove_manager::TroveManagerContract};
     use fuels::prelude::Account;
+    use fuels::types::errors::Error;
     use fuels::types::AssetId;
 
     pub async fn get_multiple_sorted_troves<T: Account>(
@@ -20,7 +21,7 @@ pub mod multi_trove_getter_abi {
         asset_id: &AssetId,
         start_indx: u64,
         count: u8,
-    ) -> CallResponse<Vec<CombinedTroveData>> {
+    ) -> Result<CallResponse<Vec<CombinedTroveData>>, Error> {
         multi_trove_getter
             .methods()
             .get_multiple_sorted_troves(
@@ -38,7 +39,6 @@ pub mod multi_trove_getter_abi {
             ])
             .call()
             .await
-            .unwrap()
     }
 }
 
@@ -65,6 +65,7 @@ pub mod multi_trove_getter_utils {
             10,
         )
         .await
+        .unwrap()
         .value;
 
         for trove in troves_after_rewards {
@@ -94,6 +95,7 @@ pub mod multi_trove_getter_utils {
             10,
         )
         .await
+        .unwrap()
         .value;
 
         let len = troves.len();

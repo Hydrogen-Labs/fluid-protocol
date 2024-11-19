@@ -115,6 +115,7 @@ mod tests {
 
             let price = oracle_abi::get_price(&oracle, &pyth, &Some(redstone.unwrap().clone()))
                 .await
+                .unwrap()
                 .value;
 
             assert_eq!(expected_price, price);
@@ -136,6 +137,7 @@ mod tests {
             .await;
             let price = oracle_abi::get_price(&oracle, &pyth, &Some(redstone.clone()))
                 .await
+                .unwrap()
                 .value;
 
             assert_eq!(expected_price, price);
@@ -147,6 +149,7 @@ mod tests {
             .await;
             let price = oracle_abi::get_price(&oracle, &pyth, &Some(redstone.clone()))
                 .await
+                .unwrap()
                 .value;
 
             assert_eq!(expected_price, price);
@@ -174,6 +177,7 @@ mod tests {
             .await;
             let price = oracle_abi::get_price(&oracle, &pyth, &Some(redstone.clone()))
                 .await
+                .unwrap()
                 .value;
 
             assert_eq!(expected_price_pyth, price);
@@ -189,6 +193,7 @@ mod tests {
             redstone_oracle_abi::set_timestamp(&redstone, PYTH_TIMESTAMP + 1).await;
             let price = oracle_abi::get_price(&oracle, &pyth, &Some(redstone.clone()))
                 .await
+                .unwrap()
                 .value;
 
             assert_eq!(expected_price_redstone, price);
@@ -220,6 +225,7 @@ mod tests {
                     .await;
                     let price = oracle_abi::get_price(&oracle, &pyth, &Some(redstone.clone()))
                         .await
+                        .unwrap()
                         .value;
 
                     assert_eq!(expected_price, price);
@@ -236,6 +242,7 @@ mod tests {
                     redstone_oracle_abi::set_timestamp(&redstone, PYTH_TIMESTAMP).await;
                     let price = oracle_abi::get_price(&oracle, &pyth, &Some(redstone.clone()))
                         .await
+                        .unwrap()
                         .value;
 
                     assert_eq!(expected_price * 2, price);
@@ -257,6 +264,7 @@ mod tests {
                     .await;
                     let price = oracle_abi::get_price(&oracle, &pyth, &Some(redstone.clone()))
                         .await
+                        .unwrap()
                         .value;
 
                     assert_eq!(expected_price, price);
@@ -274,6 +282,7 @@ mod tests {
 
                     let price = oracle_abi::get_price(&oracle, &pyth, &Some(redstone.clone()))
                         .await
+                        .unwrap()
                         .value;
 
                     assert_eq!(expected_price, price);
@@ -302,6 +311,7 @@ mod tests {
                     .await;
                     let price = oracle_abi::get_price(&oracle, &pyth, &Some(redstone.clone()))
                         .await
+                        .unwrap()
                         .value;
 
                     assert_eq!(expected_price_pyth, price);
@@ -318,6 +328,7 @@ mod tests {
                     redstone_oracle_abi::set_timestamp(&redstone, PYTH_TIMESTAMP + 1).await;
                     let price = oracle_abi::get_price(&oracle, &pyth, &Some(redstone.clone()))
                         .await
+                        .unwrap()
                         .value;
 
                     let redstone_price = redstone_oracle_abi::read_prices(
@@ -351,6 +362,7 @@ mod tests {
                     .await;
                     let price = oracle_abi::get_price(&oracle, &pyth, &Some(redstone.clone()))
                         .await
+                        .unwrap()
                         .value;
 
                     assert_eq!(expected_price, price);
@@ -367,6 +379,7 @@ mod tests {
                     redstone_oracle_abi::set_timestamp(&redstone, PYTH_TIMESTAMP).await;
                     let price = oracle_abi::get_price(&oracle, &pyth, &Some(redstone.clone()))
                         .await
+                        .unwrap()
                         .value;
 
                     assert_eq!(expected_price, price);
@@ -402,6 +415,7 @@ mod tests {
             .await;
             let result = oracle_abi::get_price(&oracle, &pyth, &Some(redstone.clone()))
                 .await
+                .unwrap()
                 .value;
 
             assert_eq!(convert_precision(price, PYTH_PRECISION.into()), result);
@@ -434,6 +448,7 @@ mod tests {
 
             let result = oracle_abi::get_price(&oracle, &pyth, &Some(redstone.clone()))
                 .await
+                .unwrap()
                 .value;
 
             assert_eq!(
@@ -467,6 +482,7 @@ mod tests {
 
             let price = oracle_abi::get_price(&oracle, &pyth, &Some(redstone.clone()))
                 .await
+                .unwrap()
                 .value;
 
             // Expected price calculation:
@@ -498,6 +514,7 @@ mod tests {
 
             let price = oracle_abi::get_price(&oracle, &pyth, &Some(redstone.clone()))
                 .await
+                .unwrap()
                 .value;
 
             // Expected price calculation:
@@ -531,6 +548,7 @@ mod tests {
             .await;
             let price_exp_9 = oracle_abi::get_price(&oracle, &pyth, &Some(redstone.clone()))
                 .await
+                .unwrap()
                 .value;
             assert_eq!(expected_price, price_exp_9);
 
@@ -543,6 +561,7 @@ mod tests {
             .await;
             let price_exp_6 = oracle_abi::get_price(&oracle, &pyth, &Some(redstone.clone()))
                 .await
+                .unwrap()
                 .value;
             assert_eq!(expected_price, price_exp_6);
 
@@ -555,6 +574,7 @@ mod tests {
             .await;
             let price_exp_12 = oracle_abi::get_price(&oracle, &pyth, &Some(redstone.clone()))
                 .await
+                .unwrap()
                 .value;
             assert_eq!(expected_price, price_exp_12);
 

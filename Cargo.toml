@@ -23,6 +23,7 @@ members = [
     "./contracts/multi-trove-getter-contract",
     "./deploy-scripts",
     "./test-utils",
+    "./services",
 ]
 
 [workspace.dependencies]
@@ -38,3 +39,4 @@ serde_json = "1.0.92"
 tai64 = "4.0.0"
 tokio = { version = "1.21.0", features = ["rt", "macros"] }
 test-utils = { path = "./test-utils" }
+deploy-scripts = { path = "./deploy-scripts" }

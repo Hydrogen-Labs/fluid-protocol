@@ -65,6 +65,7 @@ pub struct AssetContracts<T: Account> {
     pub redstone_price_id: U256,
     pub redstone_precision: u32,
     pub fuel_vm_decimals: u32,
+    pub symbol: String,
 }
 pub struct AssetContractsOptionalRedstone<T: Account> {
     pub symbol: String,

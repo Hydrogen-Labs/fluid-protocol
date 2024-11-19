@@ -119,7 +119,10 @@ async fn test_get_price_pyth_only() {
     .await;
 
     // Get price from Oracle (should return Pyth price)
-    let price = oracle_abi::get_price(&oracle, &pyth, &None).await.value;
+    let price = oracle_abi::get_price(&oracle, &pyth, &None)
+        .await
+        .unwrap()
+        .value;
     assert_eq!(price, pyth_price, "Oracle should return Pyth price");
 
     // Set Pyth price as stale
@@ -127,7 +130,10 @@ async fn test_get_price_pyth_only() {
     oracle_abi::set_debug_timestamp(&oracle, stale_timestamp).await;
 
     // Get price from Oracle (should return last good price)
-    let price = oracle_abi::get_price(&oracle, &pyth, &None).await.value;
+    let price = oracle_abi::get_price(&oracle, &pyth, &None)
+        .await
+        .unwrap()
+        .value;
     assert_eq!(
         price, pyth_price,
         "Oracle should return last good price when Pyth is stale"

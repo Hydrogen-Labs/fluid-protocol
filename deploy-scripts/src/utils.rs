@@ -11,6 +11,7 @@ pub mod utils {
     use test_utils::data_structures::{
         AssetContracts, AssetContractsOptionalRedstone, ContractInstance, PRECISION,
     };
+    use test_utils::interfaces::multi_trove_getter::MultiTroveGetter;
     use test_utils::interfaces::oracle::oracle_abi;
     use test_utils::interfaces::pyth_oracle::pyth_oracle_abi;
     use test_utils::interfaces::redstone_oracle::redstone_oracle_abi;
@@ -321,6 +322,7 @@ pub mod utils {
                         asset_contract["redstone_price_id"].as_str().unwrap_or("0"),
                     )
                     .unwrap(),
+                    symbol: asset_contract["symbol"].as_str().unwrap().to_string(),
                 }
             })
             .collect();
@@ -344,6 +346,26 @@ pub mod utils {
         };
 
         protocol_contracts
+    }
+
+    pub fn load_multi_trove_getter(
+        wallet: WalletUnlocked,
+        is_testnet: bool,
+    ) -> MultiTroveGetter<WalletUnlocked> {
+        let json = std::fs::read_to_string(match is_testnet {
+            true => TESTNET_CONTRACTS_FILE,
+            false => MAINNET_CONTRACTS_FILE,
+        })
+        .unwrap();
+        let contracts: serde_json::Value = serde_json::from_str(&json).unwrap();
+        MultiTroveGetter::new(
+            contracts["multi_trove_getter"]
+                .as_str()
+                .unwrap()
+                .parse::<Bech32ContractId>()
+                .unwrap(),
+            wallet,
+        )
     }
 
     pub async fn is_testnet(wallet: WalletUnlocked) -> bool {
@@ -442,6 +464,7 @@ pub mod utils {
             &redstone_contract,
         )
         .await
+        .unwrap()
         .value;
 
         println!(
