@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      - NETWORK=mainnet
+    volumes:
+      - ./.env:/app/.env
+      - ./mainnet.contracts.json:/app/mainnet.contracts.json
+      - ./testnet.contracts.json:/app/testnet.contracts.json
