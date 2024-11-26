@@ -1,6 +1,7 @@
 use deploy_scripts::{
     add_asset::add_asset,
     deploy::deployment::deploy,
+    initialize_hint_helper::initialize_hint_helper,
     pause::{pause_protocol, unpause_protocol},
     sanity_check::sanity_check,
     transfer_ownership::transfer_owner,
@@ -11,7 +12,7 @@ pub async fn main() {
     let args: Vec<String> = std::env::args().collect();
     if args.len() < 2 {
         println!(
-            "Please specify 'deploy', 'add-asset <symbol>', 'pause', 'unpause', 'sanity-check', or 'transfer-owner <address>'"
+            "Please specify 'deploy', 'add-asset <symbol>', 'pause', 'unpause', 'sanity-check', 'initialize-hint-helper', or 'transfer-owner <address>'"
         );
         return;
     }
@@ -28,6 +29,7 @@ pub async fn main() {
         "pause" => pause_protocol().await,
         "unpause" => unpause_protocol().await,
         "sanity-check" => sanity_check().await,
+        "initialize-hint-helper" => initialize_hint_helper().await,
         "transfer-owner" => {
             if args.len() < 3 {
                 println!("Please specify the new owner address");
@@ -36,7 +38,7 @@ pub async fn main() {
             transfer_owner(&args[2]).await
         },
         _ => println!(
-            "Invalid argument. Use 'deploy', 'add-asset <symbol>', 'pause', 'unpause', 'sanity-check', or 'transfer-owner <address>'"
+            "Invalid argument. Use 'deploy', 'add-asset <symbol>', 'pause', 'unpause', 'sanity-check', 'initialize-hint-helper', or 'transfer-owner <address>'"
         ),
     }
 }

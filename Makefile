@@ -37,3 +37,6 @@ sanity-check: ## Run the sanity check script (usage: make sanity-check NETWORK=<
 
 transfer-owner: ## Transfer ownership of the protocol (usage: make transfer-owner NETWORK=<mainnet|testnet> ADDRESS=<new_owner_address>)
 	@cd deploy-scripts && NETWORK=$(NETWORK) SECRET=$(SECRET) cargo run transfer-owner $(ADDRESS)
+
+initialize-hint-helper: ## Initialize the hint helper (usage: make initialize-hint-helper NETWORK=<mainnet|testnet>)
+	@cd deploy-scripts && NETWORK=$(NETWORK) SECRET=$(SECRET) cargo run initialize-hint-helper

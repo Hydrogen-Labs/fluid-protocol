@@ -1,6 +1,7 @@
 pub mod add_asset;
 pub mod constants;
 pub mod deploy;
+pub mod initialize_hint_helper;
 pub mod pause;
 pub mod sanity_check;
 pub mod transfer_ownership;

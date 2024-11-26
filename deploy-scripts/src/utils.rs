@@ -11,6 +11,7 @@ pub mod utils {
     use test_utils::data_structures::{
         AssetContracts, AssetContractsOptionalRedstone, ContractInstance, PRECISION,
     };
+    use test_utils::interfaces::hint_helper::HintHelper;
     use test_utils::interfaces::multi_trove_getter::MultiTroveGetter;
     use test_utils::interfaces::oracle::oracle_abi;
     use test_utils::interfaces::pyth_oracle::pyth_oracle_abi;
@@ -360,6 +361,26 @@ pub mod utils {
         let contracts: serde_json::Value = serde_json::from_str(&json).unwrap();
         MultiTroveGetter::new(
             contracts["multi_trove_getter"]
+                .as_str()
+                .unwrap()
+                .parse::<Bech32ContractId>()
+                .unwrap(),
+            wallet,
+        )
+    }
+
+    pub fn load_hint_helper(
+        wallet: WalletUnlocked,
+        is_testnet: bool,
+    ) -> HintHelper<WalletUnlocked> {
+        let json = std::fs::read_to_string(match is_testnet {
+            true => TESTNET_CONTRACTS_FILE,
+            false => MAINNET_CONTRACTS_FILE,
+        })
+        .unwrap();
+        let contracts: serde_json::Value = serde_json::from_str(&json).unwrap();
+        HintHelper::new(
+            contracts["hint_helper"]
                 .as_str()
                 .unwrap()
                 .parse::<Bech32ContractId>()
