@@ -4,5 +4,6 @@ pub mod deploy;
 pub mod initialize_hint_helper;
 pub mod pause;
 pub mod sanity_check;
+pub mod test_hint_helper;
 pub mod transfer_ownership;
 pub mod utils;

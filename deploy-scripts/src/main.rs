@@ -4,6 +4,7 @@ use deploy_scripts::{
     initialize_hint_helper::initialize_hint_helper,
     pause::{pause_protocol, unpause_protocol},
     sanity_check::sanity_check,
+    test_hint_helper::test_hint_helper,
     transfer_ownership::transfer_owner,
 };
 
@@ -37,6 +38,7 @@ pub async fn main() {
             }
             transfer_owner(&args[2]).await
         },
+        "test-hint-helper" => test_hint_helper().await,
         _ => println!(
             "Invalid argument. Use 'deploy', 'add-asset <symbol>', 'pause', 'unpause', 'sanity-check', 'initialize-hint-helper', or 'transfer-owner <address>'"
         ),

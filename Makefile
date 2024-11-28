@@ -40,3 +40,6 @@ transfer-owner: ## Transfer ownership of the protocol (usage: make transfer-owne
 
 initialize-hint-helper: ## Initialize the hint helper (usage: make initialize-hint-helper NETWORK=<mainnet|testnet>)
 	@cd deploy-scripts && NETWORK=$(NETWORK) SECRET=$(SECRET) cargo run initialize-hint-helper
+
+test-hint-helper: ## Test the hint helper (usage: make test-hint-helper NETWORK=<mainnet|testnet>)
+	@cd deploy-scripts && NETWORK=$(NETWORK) SECRET=$(SECRET) cargo run test-hint-helper
