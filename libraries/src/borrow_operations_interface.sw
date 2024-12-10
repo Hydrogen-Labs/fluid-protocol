@@ -62,6 +62,12 @@ abi BorrowOperations {
     fn get_usdf_asset_id() -> AssetId;
 
     #[storage(read, write)]
+    fn set_asset_pause_status(asset: AssetId, is_paused: bool);
+
+    #[storage(read)]
+    fn get_asset_pause_status(asset: AssetId) -> bool;
+
+    #[storage(read, write)]
     fn set_pause_status(is_paused: bool);
 
     #[storage(read)]
