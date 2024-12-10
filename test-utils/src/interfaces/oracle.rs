@@ -17,7 +17,7 @@ pub mod oracle_abi {
     use super::*;
     use fuels::{
         prelude::{Account, TxPolicies},
-        programs::calls::ContractDependency,
+        programs::calls::{ContractDependency, Execution},
         types::{bech32::Bech32ContractId, errors::Error},
     };
 
@@ -50,6 +50,35 @@ pub mod oracle_abi {
             .with_contract_ids(&with_contract_ids)
             .with_tx_policies(tx_params)
             .call()
+            .await
+    }
+
+    pub async fn get_price_read_only<T: Account>(
+        oracle: &ContractInstance<Oracle<T>>,
+        pyth: &PythCore<T>,
+        redstone: &Option<RedstoneCore<T>>,
+    ) -> Result<CallResponse<u64>, Error> {
+        let mut with_contracts: Vec<&dyn ContractDependency> = Vec::new();
+        with_contracts.push(pyth);
+        if let Some(redstone) = redstone {
+            with_contracts.push(redstone);
+        }
+
+        let mut with_contract_ids: Vec<Bech32ContractId> = Vec::new();
+        with_contract_ids.push(pyth.contract_id().into());
+        with_contract_ids.push(oracle.implementation_id.into());
+        with_contract_ids.push(oracle.contract.contract_id().into());
+        if let Some(redstone) = redstone {
+            with_contract_ids.push(redstone.contract_id().into());
+        }
+
+        oracle
+            .contract
+            .methods()
+            .get_price()
+            .with_contracts(&with_contracts)
+            .with_contract_ids(&with_contract_ids)
+            .simulate(Execution::StateReadOnly)
             .await
     }
 

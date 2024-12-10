@@ -11,6 +11,7 @@ pub mod multi_trove_getter_abi {
     use crate::data_structures::ContractInstance;
     use crate::interfaces::{sorted_troves::SortedTroves, trove_manager::TroveManagerContract};
     use fuels::prelude::Account;
+    use fuels::programs::calls::Execution;
     use fuels::types::errors::Error;
     use fuels::types::AssetId;
 
@@ -37,7 +38,7 @@ pub mod multi_trove_getter_abi {
                 trove_manager.contract.contract_id().into(),
                 trove_manager.implementation_id.into(),
             ])
-            .call()
+            .simulate(Execution::StateReadOnly)
             .await
     }
 }

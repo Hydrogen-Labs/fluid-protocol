@@ -60,7 +60,7 @@ impl Liquidator {
                 println!("🔍 Checking asset ID: 0x{}", asset_contract.asset_id);
                 println!("   Symbol: {}", asset_contract.symbol);
 
-                let price = match oracle_abi::get_price(
+                let price = match oracle_abi::get_price_read_only(
                     &asset_contract.oracle,
                     &asset_contract.mock_pyth_oracle,
                     &None,
@@ -108,6 +108,7 @@ impl Liquidator {
 
                     println!("📝 Processing {} troves in current batch", troves.len());
                     let troves_len = troves.len();
+                    let mut all_above_mcr = false;
                     for (i, trove) in troves.into_iter().enumerate() {
                         let cr = (trove.collateral as u128 * price as u128 * PRECISION as u128)
                             / (trove.debt as u128 * PRECISION as u128);
@@ -123,9 +124,17 @@ impl Liquidator {
                                 }
                             );
                         }
-                        if cr < MIN_COLLATERAL_RATIO {
-                            liquidatable_troves.push(trove.address);
+                        if cr >= MIN_COLLATERAL_RATIO {
+                            // If we find a trove above MCR, all subsequent troves will be above MCR
+                            all_above_mcr = true;
+                            break;
                         }
+                        liquidatable_troves.push(trove.address);
+                    }
+
+                    if all_above_mcr {
+                        println!("✅ Remaining troves are above MCR, stopping search");
+                        break;
                     }
 
                     start_idx += troves_len as u64;
