@@ -170,6 +170,21 @@ impl ProtocolManager for Contract {
             remaining_iterations -= 1;
             let next_user_to_check = sorted_troves.get_prev(current_borrower, contracts_cache.asset_address);
 
+            // Check if this is the last trove for this asset
+            let next_trove = sorted_troves.get_prev(current_borrower, contracts_cache.asset_address);
+            if (next_trove == null_identity_address()) {
+                // This is the last trove, skip it and move to next asset
+                assets_info.current_crs.set(index, u64::max());
+                assets_info
+                    .current_borrowers
+                    .set(index, null_identity_address());
+                assets_info.redemption_totals.set(index, totals);
+                let next_borrower = find_min_borrower(assets_info.current_borrowers, assets_info.current_crs);
+                current_borrower = next_borrower.0;
+                index = next_borrower.1;
+                continue;
+            }
+
             // Apply pending rewards to ensure up-to-date trove state
             trove_manager_contract.apply_pending_rewards(current_borrower);
 
