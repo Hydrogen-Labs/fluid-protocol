@@ -9,7 +9,8 @@ abigen!(Contract(
 ));
 
 pub const DEFAULT_PYTH_PRICE_ID: Bits256 = Bits256([0; 32]);
-pub const PYTH_TIMESTAMP: u64 = 1724166967;
+pub const TAI64_UNIX_ADJUSTMENT: u64 = 10 + (1 << 62);
+pub const PYTH_TIMESTAMP: u64 = 1724166967 + TAI64_UNIX_ADJUSTMENT;
 pub const PYTH_PRECISION: u32 = 9;
 
 pub fn pyth_price_feed(price: u64) -> Vec<(Bits256, Price)> {
