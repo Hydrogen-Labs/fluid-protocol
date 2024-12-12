@@ -20,11 +20,19 @@ pub async fn migrate_to_v2() {
     dotenv().ok();
 
     let wallet = setup_wallet().await;
-    let address = wallet.address();
-    println!("🔑 Wallet address: {}", address);
+    let address = wallet.address().hash().to_string();
+    println!("🔑 Wallet address: 0x{}", address);
 
     let is_testnet = is_testnet(wallet.clone()).await;
     let core_contracts = load_core_contracts(wallet.clone(), is_testnet);
+
+    println!(
+        "Network: {}",
+        match is_testnet {
+            true => "Testnet",
+            false => "Mainnet",
+        }
+    );
 
     println!("Are you sure you want to migrate contracts to v2? (y/n)");
     let mut input = String::new();
@@ -96,8 +104,6 @@ pub async fn migrate_to_v2() {
         pb.inc();
     }
 
-    pb.finish();
-
     // Write the updated contracts to file
     let json = std::fs::read_to_string(match is_testnet {
         true => TESTNET_CONTRACTS_FILE,
@@ -139,4 +145,6 @@ pub async fn migrate_to_v2() {
         new_protocol_manager.implementation_id
     );
     println!("TroveManager: {}", new_trove_manager.implementation_id);
+
+    pb.finish();
 }
