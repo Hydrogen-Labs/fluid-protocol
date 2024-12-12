@@ -3,18 +3,16 @@ use crate::{
     utils::utils::{is_testnet, load_core_contracts, setup_wallet},
 };
 use dotenv::dotenv;
-
 use pbr::ProgressBar;
+use serde_json::json;
+use std::fs::File;
+use std::io::Write;
 use test_utils::{
     interfaces::proxy::{proxy_abi, Proxy},
     setup::common::{
         deploy_borrow_operations, deploy_protocol_manager, deploy_trove_manager_contract,
     },
 };
-
-use serde_json::json;
-use std::fs::File;
-use std::io::Write;
 
 pub async fn migrate_to_v2() {
     dotenv().ok();
