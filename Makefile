@@ -39,4 +39,4 @@ transfer-owner: ## Transfer ownership of the protocol (usage: make transfer-owne
 	@cd deploy-scripts && NETWORK=$(NETWORK) SECRET=$(SECRET) cargo run transfer-owner $(ADDRESS)
 
 migrate-v2: ## Migrate contracts to v2 (usage: make migrate-v2 NETWORK=<mainnet|testnet>)
-	@cd forc build && deploy-scripts && NETWORK=$(NETWORK) SECRET=$(SECRET) cargo run migrate-v2
+	@forc build && cd deploy-scripts && NETWORK=$(NETWORK) SECRET=$(SECRET) cargo run migrate-v2
