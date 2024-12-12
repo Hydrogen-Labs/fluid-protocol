@@ -103,7 +103,7 @@ pub mod deployment {
         return (hint_helper, multi_trove_getter);
     }
 
-    fn write_contracts_to_file(
+    pub fn write_contracts_to_file(
         contracts: ProtocolContracts<WalletUnlocked>,
         hint_helper: HintHelper<WalletUnlocked>,
         multi_trove_getter: MultiTroveGetter<WalletUnlocked>,
