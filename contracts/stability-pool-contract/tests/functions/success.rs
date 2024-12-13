@@ -4,6 +4,7 @@ use test_utils::{
     data_structures::{ContractInstance, PRECISION},
     interfaces::{
         borrow_operations::{borrow_operations_abi, borrow_operations_utils, BorrowOperations},
+        community_issuance::community_issuance_abi,
         oracle::oracle_abi,
         pyth_oracle::{
             pyth_oracle_abi, pyth_price_feed, pyth_price_feed_with_time, PYTH_PRECISION,
@@ -1343,5 +1344,404 @@ async fn proper_one_sp_depositor_position_new_asset_onboarded_midway() {
         st_mock_balance,
         asset_with_fee_adjustment + gas_coll_compensation,
         "st_mock_balance not currect",
+    );
+}
+
+#[tokio::test]
+async fn proper_multiple_liquidations_maintain_ratio() {
+    let (contracts, admin, mut wallets) = setup_protocol(20, false, false).await;
+    let depositor_1 = wallets.pop().unwrap();
+    let depositor_2 = wallets.pop().unwrap();
+    let depositor_3 = wallets.pop().unwrap();
+
+    // Initial setup for price feeds
+    oracle_abi::set_debug_timestamp(&contracts.asset_contracts[0].oracle, PYTH_TIMESTAMP).await;
+    pyth_oracle_abi::update_price_feeds(
+        &contracts.asset_contracts[0].mock_pyth_oracle,
+        pyth_price_feed(10),
+    )
+    .await;
+    // Set up admin's initial trove and USDF
+    borrow_operations_utils::mint_token_and_open_trove(
+        admin.clone(),
+        &contracts.asset_contracts[0],
+        &contracts.borrow_operations,
+        &contracts.usdf,
+        &contracts.fpt_staking,
+        &contracts.active_pool,
+        &contracts.sorted_troves,
+        100_000 * PRECISION,
+        50_000 * PRECISION,
+    )
+    .await;
+
+    // Transfer USDF to second depositor
+    let tx_params = TxPolicies::default().with_tip(1);
+    admin
+        .transfer(
+            depositor_2.address().into(),
+            20_000 * PRECISION,
+            contracts.usdf_asset_id,
+            tx_params,
+        )
+        .await
+        .unwrap();
+
+    admin
+        .transfer(
+            depositor_1.address().into(),
+            10_000 * PRECISION,
+            contracts.usdf_asset_id,
+            tx_params,
+        )
+        .await
+        .unwrap();
+
+    admin
+        .transfer(
+            depositor_3.address().into(),
+            10_000 * PRECISION,
+            contracts.usdf_asset_id,
+            tx_params,
+        )
+        .await
+        .unwrap();
+
+    let depositor_1_sp = ContractInstance::new(
+        StabilityPool::new(
+            contracts.stability_pool.contract.contract_id().clone(),
+            depositor_1.clone(),
+        ),
+        contracts.stability_pool.implementation_id,
+    );
+
+    // Initial deposits and shares:
+    // Depositor 1: 10,000 USDF (33.33%)
+    // Depositor 2: 20,000 USDF (66.67%)
+    // Total Pool: 30,000 USDF
+    // Make initial deposits to stability pool
+    stability_pool_abi::provide_to_stability_pool(
+        &depositor_1_sp,
+        &contracts.community_issuance,
+        &contracts.usdf,
+        &contracts.asset_contracts[0].asset,
+        10_000 * PRECISION, // Admin deposits 10_000
+    )
+    .await
+    .unwrap();
+
+    let depositor_2_sp = ContractInstance::new(
+        StabilityPool::new(
+            contracts.stability_pool.contract.contract_id().clone(),
+            depositor_2.clone(),
+        ),
+        contracts.stability_pool.implementation_id,
+    );
+
+    stability_pool_abi::provide_to_stability_pool(
+        &depositor_2_sp,
+        &contracts.community_issuance,
+        &contracts.usdf,
+        &contracts.asset_contracts[0].asset,
+        20_000 * PRECISION, // Depositor 2 deposits 20_000
+    )
+    .await
+    .unwrap();
+
+    // First round of liquidations (5 troves):
+    // Each trove: 500 USDF debt + fee
+    // Total liquidated: ~2,500 USDF
+    // Expected remaining deposits after liquidations:
+    // Depositor 1: ~9,167 USDF (33.33%)
+    // Depositor 2: ~18,333 USDF (66.67%)
+    // Total Pool: ~27,500 USDF
+    // Perform 5 cycles of trove creation and liquidation
+    let num_liquidations: u64 = 5;
+    for i in 0..num_liquidations {
+        let liquidated_wallet = wallets[i as usize].clone();
+        let base_timestamp = PYTH_TIMESTAMP + (i * 2) as u64; // Each iteration gets its own timestamp window
+
+        // Create trove to be liquidated
+        borrow_operations_utils::mint_token_and_open_trove(
+            liquidated_wallet.clone(),
+            &contracts.asset_contracts[0],
+            &contracts.borrow_operations,
+            &contracts.usdf,
+            &contracts.fpt_staking,
+            &contracts.active_pool,
+            &contracts.sorted_troves,
+            550 * PRECISION, // Collateral
+            500 * PRECISION, // Debt
+        )
+        .await;
+
+        // Update price to trigger liquidation
+        oracle_abi::set_debug_timestamp(&contracts.asset_contracts[0].oracle, base_timestamp).await;
+        pyth_oracle_abi::update_price_feeds(
+            &contracts.asset_contracts[0].mock_pyth_oracle,
+            pyth_price_feed_with_time(1, base_timestamp, PYTH_PRECISION.into()),
+        )
+        .await;
+
+        // Liquidate trove
+        trove_manager_abi::liquidate(
+            &contracts.asset_contracts[0].trove_manager,
+            &contracts.community_issuance,
+            &contracts.stability_pool,
+            &contracts.asset_contracts[0].oracle,
+            &contracts.asset_contracts[0].mock_pyth_oracle,
+            &contracts.asset_contracts[0].mock_redstone_oracle,
+            &contracts.sorted_troves,
+            &contracts.active_pool,
+            &contracts.default_pool,
+            &contracts.coll_surplus_pool,
+            &contracts.usdf,
+            Identity::Address(liquidated_wallet.address().into()),
+            Identity::Address(Address::zeroed()),
+            Identity::Address(Address::zeroed()),
+        )
+        .await
+        .unwrap();
+
+        // set price high again to open next trove with a newer timestamp
+        oracle_abi::set_debug_timestamp(&contracts.asset_contracts[0].oracle, base_timestamp + 1)
+            .await;
+        pyth_oracle_abi::update_price_feeds(
+            &contracts.asset_contracts[0].mock_pyth_oracle,
+            pyth_price_feed_with_time(10, base_timestamp + 1, PYTH_PRECISION.into()),
+        )
+        .await;
+    }
+
+    // Calculate expected total liquidated amounts
+    let single_liquidation_coll = 550 * PRECISION;
+    let single_liquidation_debt = with_min_borrow_fee(500 * PRECISION);
+    let total_liquidated_coll = single_liquidation_coll * num_liquidations;
+    let total_liquidated_debt = single_liquidation_debt * num_liquidations;
+    let gas_compensation = total_liquidated_coll / 200; // 0.5%
+    let actual_liquidated_coll = total_liquidated_coll - gas_compensation;
+
+    // Verify final balances maintain 1:2 ratio
+    let depositor_1_deposit = stability_pool_abi::get_compounded_usdf_deposit(
+        &depositor_1_sp,
+        Identity::Address(depositor_1.address().into()),
+    )
+    .await
+    .unwrap();
+
+    let depositor_2_deposit = stability_pool_abi::get_compounded_usdf_deposit(
+        &contracts.stability_pool,
+        Identity::Address(depositor_2.address().into()),
+    )
+    .await
+    .unwrap();
+
+    // Check USDF deposits maintain ratio (allowing for small rounding errors)
+    assert_within_threshold(
+        depositor_1_deposit.value * 2,
+        depositor_2_deposit.value,
+        "USDF deposits should maintain 1:2 ratio",
+    );
+
+    // Check asset gains maintain ratio
+    let depositor_1_asset_gain = stability_pool_abi::get_depositor_asset_gain(
+        &contracts.stability_pool,
+        Identity::Address(depositor_1.address().into()),
+        contracts.asset_contracts[0].asset_id,
+    )
+    .await
+    .unwrap();
+
+    let depositor_2_asset_gain = stability_pool_abi::get_depositor_asset_gain(
+        &contracts.stability_pool,
+        Identity::Address(depositor_2.address().into()),
+        contracts.asset_contracts[0].asset_id,
+    )
+    .await
+    .unwrap();
+
+    assert_within_threshold(
+        depositor_1_asset_gain.value * 2,
+        depositor_2_asset_gain.value,
+        "Asset gains should maintain 1:2 ratio",
+    );
+
+    // Verify total amounts
+    let expected_remaining_deposit = 30_000 * PRECISION - total_liquidated_debt;
+    stability_pool_utils::assert_total_usdf_deposits(
+        &contracts.stability_pool,
+        expected_remaining_deposit,
+    )
+    .await;
+
+    stability_pool_utils::assert_pool_asset(
+        &contracts.stability_pool,
+        actual_liquidated_coll,
+        contracts.asset_contracts[0].asset_id,
+    )
+    .await;
+
+    let depositor_3_sp = ContractInstance::new(
+        StabilityPool::new(
+            contracts.stability_pool.contract.contract_id().clone(),
+            depositor_3.clone(),
+        ),
+        contracts.stability_pool.implementation_id,
+    );
+    // Depositor 3 joins with same deposit as Depositor 1
+    // New distribution:
+    // Depositor 1: ~9,167 USDF (25%)
+    // Depositor 2: ~18,333 USDF (50%)
+    // Depositor 3: ~9,167 USDF (25%)
+    // Total Pool: ~36,667 USDF
+    stability_pool_abi::provide_to_stability_pool(
+        &depositor_3_sp,
+        &contracts.community_issuance,
+        &contracts.usdf,
+        &contracts.asset_contracts[0].asset,
+        depositor_1_deposit.value,
+    )
+    .await
+    .unwrap();
+
+    // Second round of liquidations (5 more troves):
+    // Each trove: 500 USDF debt + fee
+    // Total new liquidated: ~2,500 USDF
+    // Expected final deposits:
+    // Depositor 1: ~8,542 USDF (25%)
+    // Depositor 2: ~17,083 USDF (50%)
+    // Depositor 3: ~8,542 USDF (25%)
+    // Total Pool: ~34,167 USDF
+    let num_liquidations: u64 = 5;
+    for i in 5..num_liquidations + 5 {
+        let liquidated_wallet = wallets[i as usize].clone();
+        let base_timestamp = PYTH_TIMESTAMP + (i * 2) as u64; // Each iteration gets its own timestamp window
+
+        // Create trove to be liquidated
+        borrow_operations_utils::mint_token_and_open_trove(
+            liquidated_wallet.clone(),
+            &contracts.asset_contracts[0],
+            &contracts.borrow_operations,
+            &contracts.usdf,
+            &contracts.fpt_staking,
+            &contracts.active_pool,
+            &contracts.sorted_troves,
+            550 * PRECISION, // Collateral
+            500 * PRECISION, // Debt
+        )
+        .await;
+
+        // Update price to trigger liquidation
+        oracle_abi::set_debug_timestamp(&contracts.asset_contracts[0].oracle, base_timestamp).await;
+        pyth_oracle_abi::update_price_feeds(
+            &contracts.asset_contracts[0].mock_pyth_oracle,
+            pyth_price_feed_with_time(1, base_timestamp, PYTH_PRECISION.into()),
+        )
+        .await;
+
+        // Liquidate trove
+        trove_manager_abi::liquidate(
+            &contracts.asset_contracts[0].trove_manager,
+            &contracts.community_issuance,
+            &contracts.stability_pool,
+            &contracts.asset_contracts[0].oracle,
+            &contracts.asset_contracts[0].mock_pyth_oracle,
+            &contracts.asset_contracts[0].mock_redstone_oracle,
+            &contracts.sorted_troves,
+            &contracts.active_pool,
+            &contracts.default_pool,
+            &contracts.coll_surplus_pool,
+            &contracts.usdf,
+            Identity::Address(liquidated_wallet.address().into()),
+            Identity::Address(Address::zeroed()),
+            Identity::Address(Address::zeroed()),
+        )
+        .await
+        .unwrap();
+
+        // set price high again to open next trove with a newer timestamp
+        oracle_abi::set_debug_timestamp(&contracts.asset_contracts[0].oracle, base_timestamp + 1)
+            .await;
+        pyth_oracle_abi::update_price_feeds(
+            &contracts.asset_contracts[0].mock_pyth_oracle,
+            pyth_price_feed_with_time(10, base_timestamp + 1, PYTH_PRECISION.into()),
+        )
+        .await;
+    }
+
+    // After second set of liquidations, verify final ratios between all depositors
+    let depositor_1_final_deposit = stability_pool_abi::get_compounded_usdf_deposit(
+        &depositor_1_sp,
+        Identity::Address(depositor_1.address().into()),
+    )
+    .await
+    .unwrap();
+
+    let depositor_2_final_deposit = stability_pool_abi::get_compounded_usdf_deposit(
+        &depositor_2_sp,
+        Identity::Address(depositor_2.address().into()),
+    )
+    .await
+    .unwrap();
+
+    let depositor_3_final_deposit = stability_pool_abi::get_compounded_usdf_deposit(
+        &depositor_3_sp,
+        Identity::Address(depositor_3.address().into()),
+    )
+    .await
+    .unwrap();
+
+    // Verify 2:1:1 ratio between depositors
+    assert_within_threshold(
+        depositor_1_final_deposit.value * 2,
+        depositor_2_final_deposit.value,
+        "Depositor 1 and 2 should maintain 1:2 ratio after second liquidation",
+    );
+
+    assert_within_threshold(
+        depositor_1_final_deposit.value,
+        depositor_3_final_deposit.value,
+        "Depositor 1 and 3 should have equal deposits after second liquidation",
+    );
+    // Asset gains should follow the same proportions as deposits
+    // Depositor 1: 25% of total gains
+    // Depositor 2: 50% of total gains
+    // Depositor 3: 25% of total gains (but only from second round)
+
+    // Also verify asset gains maintain the same ratio
+    let depositor_1_final_gain_round_2 = stability_pool_abi::get_depositor_asset_gain(
+        &contracts.stability_pool,
+        Identity::Address(depositor_1.address().into()),
+        contracts.asset_contracts[0].asset_id,
+    )
+    .await
+    .unwrap();
+
+    let depositor_2_final_gain = stability_pool_abi::get_depositor_asset_gain(
+        &contracts.stability_pool,
+        Identity::Address(depositor_2.address().into()),
+        contracts.asset_contracts[0].asset_id,
+    )
+    .await
+    .unwrap();
+
+    let depositor_3_final_gain = stability_pool_abi::get_depositor_asset_gain(
+        &contracts.stability_pool,
+        Identity::Address(depositor_3.address().into()),
+        contracts.asset_contracts[0].asset_id,
+    )
+    .await
+    .unwrap();
+
+    assert_within_threshold(
+        depositor_1_final_gain_round_2.value * 2,
+        depositor_2_final_gain.value,
+        "Asset gains should maintain 1:2 ratio between depositor 1 and 2",
+    );
+
+    assert_within_threshold(
+        depositor_1_final_gain_round_2.value - depositor_1_asset_gain.value,
+        depositor_3_final_gain.value,
+        "Depositor 1 and 3 should have equal asset gains",
     );
 }
