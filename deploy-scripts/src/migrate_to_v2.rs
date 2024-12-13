@@ -10,7 +10,8 @@ use std::io::Write;
 use test_utils::{
     interfaces::proxy::{proxy_abi, Proxy},
     setup::common::{
-        deploy_borrow_operations, deploy_protocol_manager, deploy_trove_manager_contract,
+        deploy_borrow_operations, deploy_protocol_manager, deploy_stability_pool,
+        deploy_trove_manager_contract,
     },
 };
 
@@ -41,15 +42,14 @@ pub async fn migrate_to_v2() {
         println!("Operation cancelled.");
         return;
     }
-
+    let length = core_contracts.asset_contracts.len() + 3;
+    let mut pb = ProgressBar::new(length as u64);
     // Deploy new versions
     println!("Deploying new contract versions...");
     let new_borrow_operations = deploy_borrow_operations(&wallet).await;
     let new_protocol_manager = deploy_protocol_manager(&wallet).await;
     let new_trove_manager = deploy_trove_manager_contract(&wallet).await;
-
-    let length = core_contracts.asset_contracts.len() + 2;
-    let mut pb = ProgressBar::new(length as u64);
+    let new_stability_pool = deploy_stability_pool(&wallet).await;
 
     // Update proxies
     println!("Updating proxy targets...");
@@ -86,7 +86,18 @@ pub async fn migrate_to_v2() {
     .await
     .unwrap();
     pb.inc();
-
+    // Update StabilityPool proxy
+    let stability_pool_proxy = Proxy::new(
+        core_contracts.stability_pool.contract.contract_id().clone(),
+        wallet.clone(),
+    );
+    let _ = proxy_abi::set_proxy_target(
+        &stability_pool_proxy,
+        new_stability_pool.implementation_id.into(),
+    )
+    .await
+    .unwrap();
+    pb.inc();
     // Update all TroveManager proxies to point to the same new implementation
     for asset_contract in &core_contracts.asset_contracts {
         let trove_manager_proxy = Proxy::new(
@@ -115,6 +126,8 @@ pub async fn migrate_to_v2() {
         json!(format!("0x{}", new_borrow_operations.implementation_id));
     contracts["protocol_manager_implementation_id"] =
         json!(format!("0x{}", new_protocol_manager.implementation_id));
+    contracts["stability_pool_implementation_id"] =
+        json!(format!("0x{}", new_stability_pool.implementation_id));
 
     // Update all trove manager implementation IDs in asset_contracts
     let asset_contracts = contracts["asset_contracts"].as_array_mut().unwrap();
@@ -143,6 +156,7 @@ pub async fn migrate_to_v2() {
         new_protocol_manager.implementation_id
     );
     println!("TroveManager: {}", new_trove_manager.implementation_id);
+    println!("StabilityPool: {}", new_stability_pool.implementation_id);
 
     pb.finish();
 }
