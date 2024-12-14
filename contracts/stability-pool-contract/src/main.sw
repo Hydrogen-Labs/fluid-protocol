@@ -47,7 +47,7 @@ use std::{
     storage::storage_vec::*,
     u128::U128,
 };
-const SCALE_FACTOR: u64 = 1_000_000_000;
+const SCALE_FACTOR: u64 = 10_000;
 configurable {
     /// Initializer identity
     INITIALIZER: Identity = Identity::Address(Address::zero()),

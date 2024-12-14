@@ -818,6 +818,9 @@ fn internal_redeem_collateral_from_trove(
         // If the new debt is below the minimum allowed, cancel the partial redemption
         if (new_debt < MIN_NET_DEBT) {
             single_redemption_values.cancelled_partial = true;
+            storage
+                .lock_internal_redeem_collateral_from_trove
+                .write(false);
             return single_redemption_values;
         }
         // Re-insert the trove into the sorted list with its new NICR

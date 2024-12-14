@@ -53,6 +53,9 @@ configurable {
 // Timeout period for considering oracle data as stale (10 minutes in seconds)
 const TIMEOUT: u64 = 600;
 
+const TAI64_UNIX_ADJUSTMENT = (10 + (1 << 62));
+// https://github.com/redstone-finance/redstone-oracles-monorepo/blob/ba7af63c0e3f09fa7aecd7dc4eedd4f1d4664083/packages/fuel-connector/sway/common/src/timestamp.sw#L5
+
 storage {
     /// The last valid price from either Pyth or Redstone
     last_good_price: Price = Price {
@@ -96,7 +99,7 @@ impl Oracle for Contract {
             let id = config.contract_id.bits();
             let redstone = abi(RedstoneCore, id);
             let redstone_prices = redstone.read_prices(feed);
-            let redstone_timestamp = redstone.read_timestamp();
+            let redstone_timestamp = redstone.read_timestamp() + TAI64_UNIX_ADJUSTMENT; // Redstone uses unix where we use tai64 in fuel
             let redstone_price_u64 = redstone_prices.get(0).unwrap();
             // By default redstone uses 8 decimal precision so it is generally safe to cast down
             let redstone_price = convert_precision_u256_and_downcast(

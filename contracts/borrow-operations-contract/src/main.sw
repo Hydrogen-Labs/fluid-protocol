@@ -57,6 +57,7 @@ storage {
     usdf_asset_id: AssetId = AssetId::zero(),
     is_initialized: bool = false,
     is_paused: bool = false, // paused protocol still allows trove operations which do not increase trove debt
+    is_asset_paused: StorageMap<AssetId, bool> = StorageMap::<AssetId, bool> {},
     pauser: Identity = Identity::Address(Address::zero()),
     lock_close_trove: bool = false,
     lock_internal_adjust_trove: bool = false,
@@ -122,6 +123,7 @@ impl BorrowOperations for Contract {
     #[storage(read), payable]
     fn open_trove(usdf_amount: u64, upper_hint: Identity, lower_hint: Identity) {
         require_is_not_paused();
+        require_asset_is_not_paused(msg_asset_id());
         require_valid_asset_id();
         let asset_contract = msg_asset_id();
         let asset_contracts = storage.asset_contracts.get(asset_contract).read();
@@ -318,6 +320,17 @@ impl BorrowOperations for Contract {
         storage.is_paused.write(is_paused);
     }
 
+    #[storage(read, write)]
+    fn set_asset_pause_status(asset: AssetId, is_paused: bool) {
+        require_is_pauser();
+        storage.is_asset_paused.insert(asset, is_paused);
+    }
+
+    #[storage(read)]
+    fn get_asset_pause_status(asset: AssetId) -> bool {
+        return storage.is_asset_paused.get(asset).try_read().unwrap_or(false);
+    }
+
     #[storage(read)]
     fn get_pauser() -> Identity {
         return storage.pauser.read();
@@ -327,6 +340,7 @@ impl BorrowOperations for Contract {
     fn get_is_paused() -> bool {
         return storage.is_paused.read();
     }
+
     #[storage(read, write)]
     fn add_asset(
         asset_contract: AssetId,
@@ -399,6 +413,7 @@ fn internal_adjust_trove(
     let mut vars = LocalVariablesAdjustTrove::new();
     if is_debt_increase {
         require_is_not_paused();
+        require_asset_is_not_paused(asset);
         require_non_zero_debt_change(usdf_change);
     }
     require_trove_is_active(borrower, asset_contracts_cache.trove_manager);
@@ -511,6 +526,19 @@ fn require_is_not_paused() {
         "Borrow Operations: Contract is paused",
     );
 }
+
+#[storage(read)]
+fn require_asset_is_not_paused(asset: AssetId) {
+    require(
+        !storage
+            .is_asset_paused
+            .get(asset)
+            .try_read()
+            .unwrap_or(false),
+        "Borrow Operations: Asset is paused",
+    );
+}
+
 fn require_trove_is_not_active(borrower: Identity, trove_manager: ContractId) {
     let trove_manager = abi(TroveManager, trove_manager.bits());
     let status = trove_manager.get_trove_status(borrower);

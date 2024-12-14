@@ -136,7 +136,7 @@ pub mod protocol_manager_abi {
         active_pool: &ContractInstance<ActivePool<T>>,
         sorted_troves: &ContractInstance<SortedTroves<T>>,
         aswith_contracts: &Vec<AssetContracts<T>>,
-    ) -> CallResponse<()> {
+    ) -> Result<CallResponse<()>, Error> {
         let tx_params = TxPolicies::default()
             .with_tip(1)
             .with_witness_limit(2000000)
@@ -211,7 +211,6 @@ pub mod protocol_manager_abi {
             .with_variable_output_policy(VariableOutputPolicy::Exactly(10))
             .call()
             .await
-            .unwrap()
     }
 
     pub async fn owner<T: Account>(

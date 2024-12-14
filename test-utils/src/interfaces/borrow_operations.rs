@@ -529,6 +529,41 @@ pub mod borrow_operations_abi {
             .await
     }
 
+    pub async fn get_asset_pause_status<T: Account>(
+        borrow_operations: &ContractInstance<BorrowOperations<T>>,
+        asset: AssetId,
+    ) -> Result<CallResponse<bool>, Error> {
+        let tx_params = TxPolicies::default()
+            .with_tip(1)
+            .with_script_gas_limit(2000000);
+
+        borrow_operations
+            .contract
+            .methods()
+            .get_asset_pause_status(asset.into())
+            .with_contract_ids(&[borrow_operations.implementation_id.into()])
+            .with_tx_policies(tx_params)
+            .call()
+            .await
+    }
+
+    pub async fn set_asset_pause_status<T: Account>(
+        borrow_operations: &ContractInstance<BorrowOperations<T>>,
+        asset: AssetId,
+        is_paused: bool,
+    ) -> Result<CallResponse<()>, Error> {
+        let tx_params = TxPolicies::default().with_tip(1);
+
+        borrow_operations
+            .contract
+            .methods()
+            .set_asset_pause_status(asset.into(), is_paused)
+            .with_contract_ids(&[borrow_operations.implementation_id.into()])
+            .with_tx_policies(tx_params)
+            .call()
+            .await
+    }
+
     pub async fn claim_coll<T: Account>(
         borrow_operations: &ContractInstance<BorrowOperations<T>>,
         active_pool: &ContractInstance<ActivePool<T>>,

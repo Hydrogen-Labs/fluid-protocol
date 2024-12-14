@@ -176,7 +176,8 @@ async fn proper_redemption_from_partially_closed() {
         &contracts.sorted_troves,
         &contracts.asset_contracts,
     )
-    .await;
+    .await
+    .unwrap();
 
     let logs = res.decode_logs();
     let redemption_event = logs
@@ -422,7 +423,8 @@ async fn proper_redemption_with_a_trove_closed_fully() {
         &contracts.sorted_troves,
         &contracts.asset_contracts,
     )
-    .await;
+    .await
+    .unwrap();
 
     let active_pool_asset = active_pool_abi::get_asset(
         &contracts.active_pool,
@@ -517,4 +519,115 @@ async fn proper_redemption_with_a_trove_closed_fully() {
     .value;
 
     assert_eq!(coll_surplus, coll3 - with_min_borrow_fee(debt3));
+}
+
+#[tokio::test]
+async fn multiple_partial_redemptions_succeed() {
+    let (contracts, _admin, mut wallets) = setup_protocol(5, true, false).await;
+
+    let redeemer = wallets.pop().unwrap();
+    let trove1 = wallets.pop().unwrap();
+
+    // Mint initial balances
+    let balance = 15_000 * PRECISION;
+    for wallet in [&redeemer, &trove1] {
+        token_abi::mint_to_id(
+            &contracts.asset_contracts[0].asset,
+            balance,
+            Identity::Address(wallet.address().into()),
+        )
+        .await;
+    }
+
+    // Set up oracle prices
+    oracle_abi::set_debug_timestamp(&contracts.asset_contracts[0].oracle, PYTH_TIMESTAMP).await;
+    pyth_oracle_abi::update_price_feeds(
+        &contracts.asset_contracts[0].mock_pyth_oracle,
+        pyth_price_feed(1),
+    )
+    .await;
+
+    // Open troves with different collateral ratios
+    let trove_setups = [
+        (&trove1, 10_000 * PRECISION, 6_000 * PRECISION), // CR = 1.4
+        (&redeemer, 15_000 * PRECISION, 8_000 * PRECISION), // CR = 15
+    ];
+
+    for (wallet, coll, debt) in trove_setups {
+        let borrow_ops = ContractInstance::new(
+            BorrowOperations::new(
+                contracts.borrow_operations.contract.contract_id().clone(),
+                wallet.clone(),
+            ),
+            contracts.borrow_operations.implementation_id.clone(),
+        );
+
+        borrow_operations_abi::open_trove(
+            &borrow_ops,
+            &contracts.asset_contracts[0].oracle,
+            &contracts.asset_contracts[0].mock_pyth_oracle,
+            &contracts.asset_contracts[0].mock_redstone_oracle,
+            &contracts.asset_contracts[0].asset,
+            &contracts.usdf,
+            &contracts.fpt_staking,
+            &contracts.sorted_troves,
+            &contracts.asset_contracts[0].trove_manager,
+            &contracts.active_pool,
+            coll,
+            debt,
+            Identity::Address(Address::zeroed()),
+            Identity::Address(Address::zeroed()),
+        )
+        .await
+        .unwrap();
+    }
+
+    // Set up protocol manager for redeemer
+    let protocol_manager_redeemer = ContractInstance::new(
+        ProtocolManager::new(
+            contracts.protocol_manager.contract.contract_id().clone(),
+            redeemer.clone(),
+        ),
+        contracts.protocol_manager.implementation_id,
+    );
+
+    // Perform first redemption goes into single redemption with debt below min
+    let first_redemption = 5_800 * PRECISION;
+    protocol_manager_abi::redeem_collateral(
+        &protocol_manager_redeemer,
+        first_redemption,
+        10,
+        0,
+        None,
+        None,
+        &contracts.usdf,
+        &contracts.fpt_staking,
+        &contracts.coll_surplus_pool,
+        &contracts.default_pool,
+        &contracts.active_pool,
+        &contracts.sorted_troves,
+        &contracts.asset_contracts,
+    )
+    .await
+    .unwrap();
+
+    // Perform second redemption
+    let second_redemption = 200 * PRECISION;
+    protocol_manager_abi::redeem_collateral(
+        &protocol_manager_redeemer,
+        second_redemption,
+        10,
+        0,
+        None,
+        None,
+        &contracts.usdf,
+        &contracts.fpt_staking,
+        &contracts.coll_surplus_pool,
+        &contracts.default_pool,
+        &contracts.active_pool,
+        &contracts.sorted_troves,
+        &contracts.asset_contracts,
+    )
+    .await
+    .unwrap();
 }

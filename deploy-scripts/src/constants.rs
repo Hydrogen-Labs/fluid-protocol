@@ -11,7 +11,7 @@ pub const MAINNET_RPC: &str = "https://mainnet.fuel.network/v1/playground";
 pub const TESTNET_TREASURY_IDENTITY: &str =
     "0xa5ac02c203dde9b52cb2ab29bdd0dfee1e7a17f97339ff2ead92de4eebb62305";
 pub const MAINNET_TREASURY_IDENTITY: &str =
-    "0x8c365ce492a296a851c1a68dc2fcf667766396a47dc441d9cd0f9d26756525f7";
+    "0x83953cdfeac61219ceb336684cc194d37d1fabfb8acbd530ba301ea241354280";
 
 pub const TESTNET_PYTH_CONTRACT_ID: &str =
     "0x25146735b29d4216639f7f8b1d7b921ff87a1d3051de62d6cceaacabeb33b8e7";

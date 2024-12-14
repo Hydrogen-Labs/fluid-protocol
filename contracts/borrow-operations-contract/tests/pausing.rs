@@ -331,3 +331,232 @@ async fn test_paused_operations() {
         "Should be able to withdraw USDF while unpaused"
     );
 }
+
+#[tokio::test]
+async fn test_asset_specific_pausing() {
+    let (contracts, admin, mut wallets) = setup_protocol(2, true, false).await;
+    let asset_0 = contracts.asset_contracts[0].asset_id;
+    let asset_1 = contracts.asset_contracts[1].asset_id;
+
+    // Test setting pause status for specific asset
+    let result =
+        borrow_operations_abi::set_asset_pause_status(&contracts.borrow_operations, asset_0, true)
+            .await;
+    assert!(
+        result.is_ok(),
+        "Admin should be able to pause specific asset"
+    );
+
+    // Verify pause status
+    let status =
+        borrow_operations_abi::get_asset_pause_status(&contracts.borrow_operations, asset_0)
+            .await
+            .unwrap();
+    assert!(status.value, "Asset 0 should be paused");
+
+    let status =
+        borrow_operations_abi::get_asset_pause_status(&contracts.borrow_operations, asset_1)
+            .await
+            .unwrap();
+    assert!(!status.value, "Asset 1 should not be paused");
+
+    // Setup for trove operations
+    token_abi::mint_to_id(
+        &contracts.asset_contracts[0].asset,
+        5_000 * PRECISION,
+        Identity::Address(admin.address().into()),
+    )
+    .await;
+
+    token_abi::mint_to_id(
+        &contracts.asset_contracts[1].asset,
+        5_000 * PRECISION,
+        Identity::Address(admin.address().into()),
+    )
+    .await;
+
+    let deposit_amount = 1_200 * PRECISION;
+    let borrow_amount = 600 * PRECISION;
+
+    // Setup price feeds
+    oracle_abi::set_debug_timestamp(&contracts.asset_contracts[0].oracle, PYTH_TIMESTAMP).await;
+    pyth_oracle_abi::update_price_feeds(
+        &contracts.asset_contracts[0].mock_pyth_oracle,
+        pyth_price_feed(1),
+    )
+    .await;
+
+    oracle_abi::set_debug_timestamp(&contracts.asset_contracts[1].oracle, PYTH_TIMESTAMP).await;
+    pyth_oracle_abi::update_price_feeds(
+        &contracts.asset_contracts[1].mock_pyth_oracle,
+        pyth_price_feed(1),
+    )
+    .await;
+
+    // Try to open trove with paused asset (should fail)
+    let res = borrow_operations_abi::open_trove(
+        &contracts.borrow_operations,
+        &contracts.asset_contracts[0].oracle,
+        &contracts.asset_contracts[0].mock_pyth_oracle,
+        &contracts.asset_contracts[0].mock_redstone_oracle,
+        &contracts.asset_contracts[0].asset,
+        &contracts.usdf,
+        &contracts.fpt_staking,
+        &contracts.sorted_troves,
+        &contracts.asset_contracts[0].trove_manager,
+        &contracts.active_pool,
+        deposit_amount,
+        borrow_amount,
+        Identity::Address(Address::zeroed()),
+        Identity::Address(Address::zeroed()),
+    )
+    .await;
+
+    assert!(
+        res.is_err(),
+        "Should not be able to open trove with paused asset"
+    );
+
+    // Should be able to open trove with unpaused asset
+    let res = borrow_operations_abi::open_trove(
+        &contracts.borrow_operations,
+        &contracts.asset_contracts[1].oracle,
+        &contracts.asset_contracts[1].mock_pyth_oracle,
+        &contracts.asset_contracts[1].mock_redstone_oracle,
+        &contracts.asset_contracts[1].asset,
+        &contracts.usdf,
+        &contracts.fpt_staking,
+        &contracts.sorted_troves,
+        &contracts.asset_contracts[1].trove_manager,
+        &contracts.active_pool,
+        deposit_amount,
+        borrow_amount,
+        Identity::Address(Address::zeroed()),
+        Identity::Address(Address::zeroed()),
+    )
+    .await;
+
+    assert!(
+        res.is_ok(),
+        "Should be able to open trove with unpaused asset"
+    );
+
+    // Test unauthorized pause attempt
+    let unauthorized_wallet = wallets.pop().unwrap();
+    let unauthorized_borrow_operations = ContractInstance::new(
+        BorrowOperations::new(
+            contracts.borrow_operations.contract.contract_id().clone(),
+            unauthorized_wallet.clone(),
+        ),
+        contracts.borrow_operations.implementation_id.clone(),
+    );
+
+    let res = borrow_operations_abi::set_asset_pause_status(
+        &unauthorized_borrow_operations,
+        asset_1,
+        true,
+    )
+    .await;
+
+    assert!(
+        res.is_err(),
+        "Unauthorized wallet should not be able to pause asset"
+    );
+}
+
+#[tokio::test]
+async fn test_paused_asset_operations() {
+    let (contracts, admin, _) = setup_protocol(1, true, false).await;
+    let asset_0 = contracts.asset_contracts[0].asset_id;
+
+    // Setup initial trove
+    token_abi::mint_to_id(
+        &contracts.asset_contracts[0].asset,
+        5_000 * PRECISION,
+        Identity::Address(admin.address().into()),
+    )
+    .await;
+
+    let deposit_amount = 1_200 * PRECISION;
+    let borrow_amount = 600 * PRECISION;
+
+    oracle_abi::set_debug_timestamp(&contracts.asset_contracts[0].oracle, PYTH_TIMESTAMP).await;
+    pyth_oracle_abi::update_price_feeds(
+        &contracts.asset_contracts[0].mock_pyth_oracle,
+        pyth_price_feed(1),
+    )
+    .await;
+
+    // Open trove before pausing
+    borrow_operations_abi::open_trove(
+        &contracts.borrow_operations,
+        &contracts.asset_contracts[0].oracle,
+        &contracts.asset_contracts[0].mock_pyth_oracle,
+        &contracts.asset_contracts[0].mock_redstone_oracle,
+        &contracts.asset_contracts[0].asset,
+        &contracts.usdf,
+        &contracts.fpt_staking,
+        &contracts.sorted_troves,
+        &contracts.asset_contracts[0].trove_manager,
+        &contracts.active_pool,
+        deposit_amount,
+        borrow_amount,
+        Identity::Address(Address::zeroed()),
+        Identity::Address(Address::zeroed()),
+    )
+    .await
+    .unwrap();
+
+    // Pause the asset
+    borrow_operations_abi::set_asset_pause_status(&contracts.borrow_operations, asset_0, true)
+        .await
+        .unwrap();
+
+    // Try to withdraw USDF (increase debt) while asset is paused
+    let withdraw_amount = 100 * PRECISION;
+    let res = borrow_operations_abi::withdraw_usdf(
+        &contracts.borrow_operations,
+        &contracts.asset_contracts[0].oracle,
+        &contracts.asset_contracts[0].mock_pyth_oracle,
+        &contracts.asset_contracts[0].mock_redstone_oracle,
+        &contracts.asset_contracts[0].asset,
+        &contracts.usdf,
+        &contracts.fpt_staking,
+        &contracts.sorted_troves,
+        &contracts.asset_contracts[0].trove_manager,
+        &contracts.active_pool,
+        withdraw_amount,
+        Identity::Address(Address::zeroed()),
+        Identity::Address(Address::zeroed()),
+    )
+    .await;
+
+    assert!(
+        res.is_err(),
+        "Should not be able to withdraw USDF while asset is paused"
+    );
+
+    // Should still be able to repay USDF while asset is paused
+    let repay_amount = 100 * PRECISION;
+    let res = borrow_operations_abi::repay_usdf(
+        &contracts.borrow_operations,
+        &contracts.asset_contracts[0].oracle,
+        &contracts.asset_contracts[0].mock_pyth_oracle,
+        &contracts.asset_contracts[0].mock_redstone_oracle,
+        &contracts.asset_contracts[0].asset,
+        &contracts.usdf,
+        &contracts.sorted_troves,
+        &contracts.asset_contracts[0].trove_manager,
+        &contracts.active_pool,
+        &contracts.default_pool,
+        repay_amount,
+        Identity::Address(Address::zeroed()),
+        Identity::Address(Address::zeroed()),
+    )
+    .await;
+
+    assert!(
+        res.is_ok(),
+        "Should be able to repay USDF while asset is paused"
+    );
+}

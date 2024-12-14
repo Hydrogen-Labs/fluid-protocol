@@ -3,7 +3,7 @@ include .env
 export $(shell sed 's/=.*//' .env)
 ############################# HELP MESSAGE #############################
 # Make sure the help command stays first, so that it's printed by default when `make` is called without arguments
-.PHONY: help tests build-and-test generate-types deploy add-asset pause unpause sanity-check transfer-owner
+.PHONY: help tests build-and-test generate-types deploy add-asset pause unpause sanity-check transfer-owner migrate-v2
 help:
 	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
 
@@ -43,3 +43,6 @@ initialize-hint-helper: ## Initialize the hint helper (usage: make initialize-hi
 
 test-hint-helper: ## Test the hint helper (usage: make test-hint-helper NETWORK=<mainnet|testnet>)
 	@cd deploy-scripts && NETWORK=$(NETWORK) SECRET=$(SECRET) cargo run test-hint-helper
+	
+migrate-v2: ## Migrate contracts to v2 (usage: make migrate-v2 NETWORK=<mainnet|testnet>)
+	@forc build && cd deploy-scripts && NETWORK=$(NETWORK) SECRET=$(SECRET) cargo run migrate-v2

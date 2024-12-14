@@ -9,6 +9,7 @@ abigen!(Contract(
 ));
 
 pub const DEFAULT_REDSTONE_PRICE_ID: U256 = U256::zero();
+pub const TAI64_UNIX_ADJUSTMENT: u64 = 10 + (1 << 62);
 
 pub fn redstone_price_feed(prices: Vec<u64>) -> Vec<(U256, U256)> {
     let mut feed = Vec::with_capacity(prices.len());
@@ -81,10 +82,13 @@ pub mod redstone_oracle_abi {
         timestamp: u64,
     ) -> CallResponse<()> {
         let tx_params = TxPolicies::default().with_tip(1);
+        // simulate unix timestamp where we use tai64 in fuel
+        let adjusted_timestamp = timestamp - TAI64_UNIX_ADJUSTMENT;
+        // https://github.com/redstone-finance/redstone-oracles-monorepo/blob/ba7af63c0e3f09fa7aecd7dc4eedd4f1d4664083/packages/fuel-connector/sway/common/src/timestamp.sw#L5
 
         oracle
             .methods()
-            .set_timestamp(timestamp)
+            .set_timestamp(adjusted_timestamp)
             .with_tx_policies(tx_params)
             .call()
             .await

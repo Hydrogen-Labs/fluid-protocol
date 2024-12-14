@@ -2,6 +2,7 @@ pub mod add_asset;
 pub mod constants;
 pub mod deploy;
 pub mod initialize_hint_helper;
+pub mod migrate_to_v2;
 pub mod pause;
 pub mod sanity_check;
 pub mod test_hint_helper;
