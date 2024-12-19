@@ -6,6 +6,7 @@ edition = "2021"
 license = "Apache-2.0"
 
 [dependencies]
+csv = { workspace = true }
 dotenv = { workspace = true }
 fuels = { workspace = true }
 futures = { workspace = true }
@@ -13,10 +14,10 @@ hex = { workspace = true }
 pbr = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
+tai64 = { workspace = true }
 test-utils = { workspace = true }
 tokio = { workspace = true }
-csv = { workspace = true }
-tai64 = { workspace = true }
+
 
 [lib]
 doctest = false

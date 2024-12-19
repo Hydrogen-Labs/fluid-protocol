@@ -23,6 +23,7 @@ pub async fn add_asset(symbol: &str) {
     // Get asset constants based on symbol and network type
     let asset_constants = match (symbol.to_uppercase().as_str(), is_testnet) {
         // Testnet
+        ("FUEL", true) => &constants::TESTNET_FUEL_CONSTANTS,
         ("ETH", true) => &constants::TESTNET_ETH_CONSTANTS,
         ("WSTETH", true) => &constants::TESTNET_WSTETH_CONSTANTS,
         ("EZETH", true) => &constants::TESTNET_EZETH_CONSTANTS,
@@ -30,6 +31,7 @@ pub async fn add_asset(symbol: &str) {
         ("RSETH", true) => &constants::TESTNET_RSETH_CONSTANTS,
         ("METH", true) => &constants::TESTNET_METH_CONSTANTS,
         // Mainnet
+        ("FUEL", false) => &constants::MAINNET_FUEL_CONSTANTS,
         ("ETH", false) => &constants::MAINNET_ETH_CONSTANTS,
         ("WSTETH", false) => &constants::MAINNET_WSTETH_CONSTANTS,
         ("EZETH", false) => &constants::MAINNET_EZETH_CONSTANTS,
