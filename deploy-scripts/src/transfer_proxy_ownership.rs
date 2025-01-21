@@ -1,13 +1,13 @@
 use crate::utils::utils::{is_testnet, load_core_contracts, setup_wallet};
 use dotenv::dotenv;
-use fuels::types::Identity;
+use fuels::types::{Address, Identity};
 use test_utils::interfaces::proxy::{proxy_abi, Proxy, State};
 
 pub async fn transfer_proxy_ownership(new_owner: &str) {
     dotenv().ok();
 
     let wallet = setup_wallet().await;
-    let address = wallet.address();
+    let address: Address = wallet.address().into();
     println!("🔑 Wallet address: {}", address);
 
     let is_testnet = is_testnet(wallet.clone()).await;
