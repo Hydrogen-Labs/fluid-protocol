@@ -4,6 +4,7 @@ use deploy_scripts::{
     pause::{pause_protocol, unpause_protocol},
     sanity_check::sanity_check,
     transfer_ownership::transfer_owner,
+    transfer_proxy_ownership::transfer_proxy_ownership,
 };
 
 #[tokio::main]
@@ -34,6 +35,13 @@ pub async fn main() {
                 return;
             }
             transfer_owner(&args[2]).await
+        },
+        "transfer-proxy-ownership" => {
+            if args.len() < 3 {
+                println!("Please specify the new owner address");
+                return;
+            }
+            transfer_proxy_ownership(&args[2]).await
         },
         _ => println!(
             "Invalid argument. Use 'deploy', 'add-asset <symbol>', 'pause', 'unpause', 'sanity-check', or 'transfer-owner <address>'"

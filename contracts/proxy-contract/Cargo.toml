@@ -10,8 +10,6 @@ fuels = { workspace = true }
 test-utils = { workspace = true }
 tokio = { workspace = true }
 
-# Not the latest version because of indexer bug o.o 
-
 [[test]]
 harness = true
 name = "tests"
