@@ -2,6 +2,7 @@ use deploy_scripts::{
     add_asset::add_asset,
     deploy::deployment::deploy,
     migrate_to_v2::migrate_to_v2,
+    migrate_to_v2_trove_managers::migrate_to_v2_trove_managers,
     pause::{pause_protocol, unpause_protocol},
     sanity_check::sanity_check,
     transfer_ownership::transfer_owner,
@@ -20,6 +21,13 @@ pub async fn main() {
     match args[1].as_str() {
         "deploy" => deploy().await,
         "migrate-v2" => migrate_to_v2().await,
+        "migrate-v2-trove-managers" => {
+            if args.len() < 3 {
+                println!("Please specify an asset symbol (e.g., 'migrate-v2-trove-managers ETH')");
+                return;
+            }
+            migrate_to_v2_trove_managers(&args[2]).await
+        },
         "add-asset" => {
             if args.len() < 3 {
                 println!("Please specify an asset symbol (e.g., 'add-asset ETH')");

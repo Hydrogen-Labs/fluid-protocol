@@ -76,7 +76,6 @@ storage {
     is_initialized: bool = false,
     lock_internal_close_trove: bool = false,
     lock_internal_batch_liquidate_troves: bool = false,
-    lock_internal_redeem_collateral_from_trove: bool = false,
 }
 impl TroveManager for Contract {
     #[storage(read, write)]
@@ -785,16 +784,6 @@ fn internal_redeem_collateral_from_trove(
     upper_partial_hint: Identity,
     lower_partial_hint: Identity,
 ) -> SingleRedemptionValues {
-    // Prevent reentrancy
-    require(
-        storage
-            .lock_internal_redeem_collateral_from_trove
-            .read() == false,
-        "TroveManager: Internal redeem collateral from trove is locked",
-    );
-    storage
-        .lock_internal_redeem_collateral_from_trove
-        .write(true);
     let mut single_redemption_values = SingleRedemptionValues::default();
     let sorted_troves = abi(SortedTroves, storage.sorted_troves_contract.read().into());
     let asset_contract_cache = storage.asset_contract.read();
@@ -818,9 +807,7 @@ fn internal_redeem_collateral_from_trove(
         // If the new debt is below the minimum allowed, cancel the partial redemption
         if (new_debt < MIN_NET_DEBT) {
             single_redemption_values.cancelled_partial = true;
-            storage
-                .lock_internal_redeem_collateral_from_trove
-                .write(false);
+
             return single_redemption_values;
         }
         // Re-insert the trove into the sorted list with its new NICR
@@ -846,9 +833,7 @@ fn internal_redeem_collateral_from_trove(
         collateral_amount: single_redemption_values.asset_lot,
         collateral_price: price,
     });
-    storage
-        .lock_internal_redeem_collateral_from_trove
-        .write(false);
+
     return single_redemption_values;
 }
 #[storage(read, write)]

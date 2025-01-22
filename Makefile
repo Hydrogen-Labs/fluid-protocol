@@ -40,3 +40,6 @@ transfer-owner: ## Transfer ownership of the protocol (usage: make transfer-owne
 
 migrate-v2: ## Migrate contracts to v2 (usage: make migrate-v2 NETWORK=<mainnet|testnet>)
 	@forc build && cd deploy-scripts && NETWORK=$(NETWORK) SECRET=$(SECRET) cargo run migrate-v2
+
+migrate-v2-trove-managers: ## Migrate contracts to v2 (usage: make migrate-v2-trove-managers NETWORK=<mainnet|testnet> ASSET=<asset_symbol>)
+	@forc build && cd deploy-scripts && NETWORK=$(NETWORK) SECRET=$(SECRET) cargo run migrate-v2-trove-managers $(ASSET)

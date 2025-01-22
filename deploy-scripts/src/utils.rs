@@ -321,6 +321,7 @@ pub mod utils {
                         asset_contract["redstone_price_id"].as_str().unwrap_or("0"),
                     )
                     .unwrap(),
+                    symbol: asset_contract["symbol"].as_str().unwrap().to_string(),
                 }
             })
             .collect();
