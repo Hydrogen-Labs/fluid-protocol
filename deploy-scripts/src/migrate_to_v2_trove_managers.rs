@@ -77,8 +77,10 @@ pub async fn migrate_to_v2_trove_managers(target_symbol: &str) {
     // Update all trove manager implementation IDs in asset_contracts
     let asset_contracts = contracts["asset_contracts"].as_array_mut().unwrap();
     for asset_contract in asset_contracts {
-        asset_contract["trove_manager_implementation_id"] =
-            json!(format!("0x{}", new_trove_manager.implementation_id));
+        if asset_contract["symbol"].as_str().unwrap() == target_symbol {
+            asset_contract["trove_manager_implementation_id"] =
+                json!(format!("0x{}", new_trove_manager.implementation_id));
+        }
     }
 
     // Write updated contracts back to file
