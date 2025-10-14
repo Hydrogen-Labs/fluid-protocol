@@ -71,7 +71,7 @@ MIT License (see `/LICENSE`)
 
 ## More information
 
-Visit [Fluid.org](https://www.Fluid.org) to find out more and join the discussion.
+Visit [fluid.io](https://fluid.io) to find out more and join the discussion.
 
 ## Disclaimer
 
